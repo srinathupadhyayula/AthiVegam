@@ -30,3 +30,19 @@
 *.exe
 *.out
 *.app
+
+# Additional Directories
+.vs/
+.vscode/
+bin*/
+logs/
+
+# Additional Files
+*.user
+*.DS_STORE
+*.xcworkspace/
+*.xcodeproj/
+*.vcxproj*
+*/sln
+*Makefile
+
