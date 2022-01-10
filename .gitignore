@@ -36,6 +36,7 @@
 .vscode/
 bin*/
 logs/
+Build/
 
 # Additional Files
 *.user
