@@ -43,6 +43,7 @@ logs/
 *.xcworkspace/
 *.xcodeproj/
 *.vcxproj*
-*/sln
+*.sln
 *Makefile
+*.pyc
 
