@@ -1,9 +1,39 @@
 #pragma once
+#include "Core/VegamWindow.h"
+#include <memory>
 
-namespace AthiVegam
+namespace AthiVegam 
 {
+	class Engine 
+	{
+	public:
+		~Engine();
+		Engine(const Engine&) = delete;
+		Engine& operator=(const Engine&) = delete;
+		Engine(Engine&&) = delete;
+		Engine& operator=(Engine&&) = delete;
 
-	void GetInfo();
-	bool Initialize();
-	void Shutdown();
-}
+		void Run();
+		void Quit();
+
+		static auto& Instance()
+		{
+			static Engine instance;
+			return instance;
+		}
+
+	private:
+		// Singleton for now
+		Engine();
+
+		[[nodiscard]] bool Initialize();
+		void Shutdown();
+
+		void GetInfo();
+
+	private:
+		Core::VegamWindow m_window;
+		bool m_isRunning;
+
+	};
+} // namespace AthiVegam
