@@ -1,5 +1,8 @@
 #pragma once
+
 #include "Core/VegamWindow.h"
+#include "Managers/LogManager.h"
+
 #include <memory>
 
 namespace AthiVegam 
@@ -33,7 +36,9 @@ namespace AthiVegam
 
 	private:
 		Core::VegamWindow m_window;
+		Managers::LogManager m_logManager;
 		bool m_isRunning;
+		bool m_isInitialized;
 
 	};
 } // namespace AthiVegam

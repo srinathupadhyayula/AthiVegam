@@ -1,8 +1,7 @@
 #include "Core/VegamWindow.h"
 #include "SDL2/SDL.h"
 #include "Engine.h"
-#include <iostream>
-
+#include "Log.h"
 
 namespace AthiVegam::Core
 {
@@ -26,7 +25,7 @@ namespace AthiVegam::Core
 
 		if (!m_sdlWindow)
 		{
-			std::cout << "Error creating window: " << SDL_GetError() << std::endl;
+			VEGAM_ERROR("Error creating window: {}", SDL_GetError());
 			return false;
 		}
 		

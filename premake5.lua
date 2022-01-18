@@ -14,6 +14,7 @@ odir = "Build/bin_obj/%{cfg.buildcfg}/%{prj.name}"
 -- External Dependencies
 externals = {}
 externals["sdl2"] = "external/sdl2"
+externals["spdlog"] = "external/spdlog"
 
 project "AthiVegam"
 	location "AthiVegam"
@@ -29,13 +30,14 @@ project "AthiVegam"
 	{
 		"%{prj.name}/include/**.h",
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.cpp", 
 	}
 
 	sysincludedirs
 	{
 		"%{prj.name}/include/AthiVegam",
-		"%{externals.sdl2}/include"
+		"%{externals.sdl2}/include",
+		"%{externals.spdlog}/include"
 	}
 
 	flags
@@ -106,7 +108,8 @@ project "ParuguEditor"
 
 	sysincludedirs
 	{
-		"AthiVegam/include"
+		"AthiVegam/include",
+		"%{externals.spdlog}/include"
 	}
 
 	flags
