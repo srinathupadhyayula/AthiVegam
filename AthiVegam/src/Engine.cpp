@@ -76,6 +76,9 @@ namespace AthiVegam
             while (m_isRunning) 
             {
                 m_window.PumpEvents();
+
+                m_window.BeginRender();
+                m_window.EndRender();
             }
         }
 

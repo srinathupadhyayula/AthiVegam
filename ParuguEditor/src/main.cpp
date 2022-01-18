@@ -1,6 +1,5 @@
 #include <iostream>
 #include "AthiVegam/Engine.h"
-#include "AthiVegam/Log.h"
 
 
 int main() 

@@ -15,6 +15,10 @@ odir = "Build/bin_obj/%{cfg.buildcfg}/%{prj.name}"
 externals = {}
 externals["sdl2"] = "external/sdl2"
 externals["spdlog"] = "external/spdlog"
+externals["glad"] = "external/glad"
+
+-- Process Glad first --
+include "external/glad"
 
 project "AthiVegam"
 	location "AthiVegam"
@@ -37,12 +41,23 @@ project "AthiVegam"
 	{
 		"%{prj.name}/include/AthiVegam",
 		"%{externals.sdl2}/include",
-		"%{externals.spdlog}/include"
+		"%{externals.spdlog}/include",
+		"%{externals.glad}/include"
 	}
 
 	flags
 	{
 		"FatalWarnings"
+	}
+
+	disablewarnings 
+	{
+		"4005"
+	}
+
+	defines
+	{
+		"GLFW_INCLUDE_NONE" --Make sure Glad does now include GLFW as we are using SDL2--
 	}
 	
 	filter {"system:windows", "configurations:*"}
@@ -108,8 +123,7 @@ project "ParuguEditor"
 
 	sysincludedirs
 	{
-		"AthiVegam/include",
-		"%{externals.spdlog}/include"
+		"AthiVegam/include"
 	}
 
 	flags
@@ -132,7 +146,8 @@ project "ParuguEditor"
 
 		links
 		{
-			"SDL2"
+			"SDL2",
+			"glad"
 		}
 		
 	filter {"system:macosx", "configurations:*"}
@@ -149,7 +164,8 @@ project "ParuguEditor"
 
 		links
 		{
-			"SDL2.framework"
+			"SDL2.framework",
+			"glad"
 		}
 		
 	filter {"system:linux", "configurations:*"}
@@ -160,7 +176,8 @@ project "ParuguEditor"
 
 		links
 		{
-			"SDL2"
+			"SDL2",
+			"glad"
 		}
 	
 	filter "configurations:Debug"

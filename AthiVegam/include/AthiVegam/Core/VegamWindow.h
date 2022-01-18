@@ -2,6 +2,7 @@
 #include <memory>
 
 struct SDL_Window;
+using SDL_GLContext = void*;
 
 namespace AthiVegam::Core
 {
@@ -13,9 +14,14 @@ namespace AthiVegam::Core
 
 		bool Create();
 		void Shutdown();
+
 		void PumpEvents();
+
+		void BeginRender();
+		void EndRender();
 
 	private:
 		SDL_Window* m_sdlWindow;
+		SDL_GLContext m_glContext;
 	};
 }
