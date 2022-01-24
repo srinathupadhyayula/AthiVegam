@@ -1,5 +1,5 @@
 workspace "AthiVegam"
-	startproject "ParuguEditor"
+	startproject "Parugu"
 	architecture "x64"
 
 	configurations
@@ -16,9 +16,11 @@ externals = {}
 externals["sdl2"] = "external/sdl2"
 externals["spdlog"] = "external/spdlog"
 externals["glad"] = "external/glad"
+externals["imgui"] = "external/imgui"
 
 -- Process Glad first --
 include "external/glad"
+include "external/imgui"
 
 project "AthiVegam"
 	location "AthiVegam"
@@ -34,7 +36,8 @@ project "AthiVegam"
 	{
 		"%{prj.name}/include/**.h",
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp", 
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/**.natvis"
 	}
 
 	sysincludedirs
@@ -42,7 +45,13 @@ project "AthiVegam"
 		"%{prj.name}/include",
 		"%{externals.sdl2}/include",
 		"%{externals.spdlog}/include",
-		"%{externals.glad}/include"
+		"%{externals.glad}/include",
+		"%{externals.imgui}/"
+	}
+
+	libdirs
+	{
+		"%{externals.sdl2}/lib"
 	}
 
 	flags
@@ -68,6 +77,13 @@ project "AthiVegam"
 			"AV_PLATFORM_WINDOWS"
 		}
 		
+		links
+		{
+			"SDL2",
+			"glad",
+			"imgui"
+		}
+		
 	filter {"system:macosx", "configurations:*"}
 		xcodebuildsettings
 		{
@@ -80,10 +96,25 @@ project "AthiVegam"
 			"AV_PLATFORM_MAC"
 		}
 		
+		links
+		{
+			"SDL2.framework",
+			"glad",
+			"imgui"
+		}
+		
 	filter {"system:linux", "configurations:*"}
 		defines
 		{
 			"AV_PLATFORM_LINUX" 
+		}
+		
+		links
+		{
+			"SDL2",
+			"glad",
+			"dl",
+			"imgui"
 		}
 	
 	filter "configurations:Debug"
@@ -93,6 +124,7 @@ project "AthiVegam"
 		}
 		runtime "Debug"
 		symbols "on"
+		buildoptions "/MTd"
 		
 	filter "configurations:Release"
 		defines
@@ -102,6 +134,7 @@ project "AthiVegam"
 		runtime "Release"
 		symbols "off"
 		optimize "on"
+		buildoptions "/MT"
 
 		
 project "Parugu"
@@ -142,16 +175,17 @@ project "Parugu"
 			"AV_PLATFORM_WINDOWS"
 		}
 
-		libdirs
-		{
-			"%{externals.sdl2}/lib"
-		}
+		--libdirs
+		--{
+		--	"%{externals.sdl2}/lib"
+		--}
 
-		links
-		{
-			"SDL2",
-			"glad"
-		}
+		--links
+		--{
+		--	"SDL2",
+		--	"glad",
+		--	"imgui"
+		--}
 		
 	filter {"system:macosx", "configurations:*"}
 		xcodebuildsettings
@@ -165,11 +199,12 @@ project "Parugu"
 			"AV_PLATFORM_MAC"
 		}
 
-		links
-		{
-			"SDL2.framework",
-			"glad"
-		}
+		--links
+		--{
+		--	"SDL2.framework",
+		--	"glad",
+		--	"imgui"
+		--}
 		
 	filter {"system:linux", "configurations:*"}
 		defines
@@ -177,12 +212,13 @@ project "Parugu"
 			"AV_PLATFORM_LINUX" 
 		}
 
-		links
-		{
-			"SDL2",
-			"glad",
-			"dl"
-		}
+		--links
+		--{
+		--	"SDL2",
+		--	"glad",
+		--	"dl",
+		--	"imgui"
+		--}
 	
 	filter "configurations:Debug"
 		defines
@@ -191,6 +227,7 @@ project "Parugu"
 		}
 		runtime "Debug"
 		symbols "on"
+		buildoptions "/MTd"
 		
 	filter "configurations:Release"
 		defines
@@ -200,3 +237,4 @@ project "Parugu"
 		runtime "Release"
 		symbols "off"
 		optimize "on"
+		buildoptions "/MT"
