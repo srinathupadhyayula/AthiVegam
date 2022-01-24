@@ -1,7 +1,7 @@
 #pragma once
 #include "spdlog/spdlog.h"
 
-#define ATHI_VEGAM_DEFAULT_LOGGER_NAME "VegamLogger"
+constexpr auto const AV_DEFAULT_LOGGER_NAME = "VegamLogger";
 
 #if defined(AV_PLATFORM_WINDOWS)
 	#define VEGAM_BREAK __debugbreak();
@@ -12,12 +12,12 @@
 #endif
 
 #ifndef AV_CONFIG_RELEASE
-	#define VEGAM_TRACE(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->trace(__VA_ARGS__);}
-	#define VEGAM_DEBUG(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->debug(__VA_ARGS__);}
-	#define VEGAM_INFO(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->info(__VA_ARGS__);}
-	#define VEGAM_WARN(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->warn(__VA_ARGS__);}
-	#define VEGAM_ERROR(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->error(__VA_ARGS__);}
-	#define VEGAM_FATAL(...) if (spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(ATHI_VEGAM_DEFAULT_LOGGER_NAME)->critical(__VA_ARGS__);}
+	#define VEGAM_TRACE(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->trace(__VA_ARGS__);}
+	#define VEGAM_DEBUG(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->debug(__VA_ARGS__);}
+	#define VEGAM_INFO(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->info(__VA_ARGS__);}
+	#define VEGAM_WARN(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->warn(__VA_ARGS__);}
+	#define VEGAM_ERROR(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->error(__VA_ARGS__);}
+	#define VEGAM_FATAL(...) if (spdlog::get(AV_DEFAULT_LOGGER_NAME) != nullptr) {spdlog::get(AV_DEFAULT_LOGGER_NAME)->critical(__VA_ARGS__);}
 	#define VEGAM_ASSERT(x, msg) if ((x)) {} else {VEGAM_FATAL("ASSERT - {}\n\t{}\n\tin file: {}\n\ton line: {}", #x, msg, __FILE__, __LINE__); VEGAM_BREAK}
 #else
 	#define VEGAM_TRACE(...) (void)0
