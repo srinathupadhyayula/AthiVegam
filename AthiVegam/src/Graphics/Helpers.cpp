@@ -24,8 +24,9 @@ namespace AthiVegam::Graphics
 			}
 
 			VEGAM_ERROR("OpenlGL Error: {}", errorStr.c_str());
+			auto assertMsg = std::string("OpenGL Error! " + errorStr);
+			VEGAM_ASSERT(shouldAssert, assertMsg);
 			error = glGetError();
-			VEGAM_ASSERT(shouldAssert, "OpenGL Error!");
 		}
 	}
 }

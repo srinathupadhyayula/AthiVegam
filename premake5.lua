@@ -104,8 +104,8 @@ project "AthiVegam"
 		optimize "on"
 
 		
-project "ParuguEditor"
-	location "ParuguEditor"
+project "Parugu"
+	location "Parugu"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++20"
@@ -117,13 +117,16 @@ project "ParuguEditor"
 
 	files
 	{
+		"%{prj.name}/include/**.h",
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.cpp"
 	}
 
 	sysincludedirs
 	{
-		"AthiVegam/include"
+		"AthiVegam/include",
+		"%{prj.name}/include",
+		"%{externals.spdlog}/include",
 	}
 
 	flags

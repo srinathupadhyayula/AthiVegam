@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App.h"
 #include "Core/VegamWindow.h"
 #include "Managers/LogManager.h"
 #include "Managers/RenderManager.h"
@@ -27,8 +28,10 @@ namespace AthiVegam
 		Engine& operator=(Engine&&) = delete;
 
 		// Engine Methods
-		void Run();
+		void Run(std::unique_ptr<App> app);
 		void Quit();
+		void Update();
+		void Render();
 
 		// Getters for Managers
 		inline Managers::RenderManager& GetRenderManager() { return m_renderManager; }
@@ -46,6 +49,8 @@ namespace AthiVegam
 	private:
 		bool m_isRunning;
 		bool m_isInitialized;
+
+		std::unique_ptr<App> m_app;
 
 		Core::VegamWindow m_window;
 

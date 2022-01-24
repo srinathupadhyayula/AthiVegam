@@ -1,14 +1,20 @@
 #pragma once
 
+#include "spdlog/spdlog.h"
+#include <memory>
+
 namespace AthiVegam::Managers
 {
+	constexpr auto const AV_DEFAULT_LOGGER_NAME = "VegamLogger";
+
 	class LogManager
 	{
 	public:
-		LogManager() = default;
-		~LogManager() = default;
+		static void Initialize(const std::string& name = AV_DEFAULT_LOGGER_NAME);
+		static void Shutdown();
 
-		void Initialize();
-		void Shutdown();
+		static std::shared_ptr<spdlog::logger> Logger();
+	private:
+		static std::shared_ptr<spdlog::logger> logger;
 	};
 }
