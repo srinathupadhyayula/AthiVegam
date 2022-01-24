@@ -6,6 +6,7 @@
 #include "AthiVegam/Input/Mouse.h"
 #include "AthiVegam/Input/Keyboard.h"
 #include "AthiVegam/Input/Controller.h"
+#include "AthiVegam/Graphics/Helpers.h"
 
 namespace AthiVegam::Core
 {
@@ -27,7 +28,6 @@ namespace AthiVegam::Core
 	bool VegamWindow::Create()
 	{
 		m_sdlWindow = SDL_CreateWindow("AthiVegamGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-
 		if (!m_sdlWindow)
 		{
 			VEGAM_ERROR("Error creating window: {}", SDL_GetError());
@@ -51,7 +51,7 @@ namespace AthiVegam::Core
 
 		if (!m_glContext)
 		{
-			VEGAM_ERROR("Error creatinf OpelGl context: {}", SDL_GetError());
+			VEGAM_ERROR("Error creating OpelGl context: {}", SDL_GetError());
 			return false;
 		}
 
