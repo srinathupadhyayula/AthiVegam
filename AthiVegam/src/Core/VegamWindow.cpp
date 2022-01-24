@@ -1,8 +1,11 @@
-#include "Core/VegamWindow.h"
+#include "AthiVegam/Core/VegamWindow.h"
 #include "SDL2/SDL.h"
 #include "glad/glad.h"
-#include "Engine.h"
-#include "Log.h"
+#include "AthiVegam/Engine.h"
+#include "AthiVegam/Log.h"
+#include "AthiVegam/Input/Mouse.h"
+#include "AthiVegam/Input/Keyboard.h"
+#include "AthiVegam/Input/Controller.h"
 
 namespace AthiVegam::Core
 {
@@ -54,25 +57,13 @@ namespace AthiVegam::Core
 
 		gladLoadGLLoader(SDL_GL_GetProcAddress);
 
-		//TODO: Move to renderer
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		// Cornflower blue
-		glClearColor(static_cast<float>(0x64) / static_cast<float>(0xFF)
-			, static_cast<float>(0x95) / static_cast<float>(0xFF)
-			, static_cast<float>(0xED) / static_cast<float>(0xFF)
-			, 1.f);
-
 		return true;
 	}
 
 	void VegamWindow::Shutdown()
 	{
 		SDL_DestroyWindow(m_sdlWindow);
+		SDL_GL_DeleteContext(m_glContext);
 		m_sdlWindow = nullptr;
 	}
 
@@ -86,15 +77,31 @@ namespace AthiVegam::Core
 			case SDL_QUIT:
 				Engine::Instance().Quit();
 				break;
+			case SDL_CONTROLLERDEVICEADDED:
+				Input::Controller::OnControllerConnected(e.cdevice);
+				break;
+			case SDL_CONTROLLERDEVICEREMOVED:
+				Input::Controller::OnControllerDisconnected(e.cdevice);
+				break;
 			default:
 				break;
 			}
 		}
+
+		// Update Input
+		Input::Mouse::Update();
+		Input::Keyboard::Update();
+		Input::Controller::Update();
+	}
+
+	void VegamWindow::GetSize(int& w, int& h)
+	{
+		SDL_GetWindowSize(m_sdlWindow, &w, &h);
 	}
 
 	void VegamWindow::BeginRender()
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		Engine::Instance().GetRenderManager().Clear();
 	}
 
 	void VegamWindow::EndRender()

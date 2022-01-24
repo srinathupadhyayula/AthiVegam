@@ -17,6 +17,7 @@ namespace AthiVegam::Core
 
 		void PumpEvents();
 
+		void GetSize(int& w, int& h);
 		void BeginRender();
 		void EndRender();
 
