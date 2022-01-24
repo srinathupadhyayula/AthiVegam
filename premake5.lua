@@ -39,7 +39,7 @@ project "AthiVegam"
 
 	sysincludedirs
 	{
-		"%{prj.name}/include/AthiVegam",
+		"%{prj.name}/include",
 		"%{externals.sdl2}/include",
 		"%{externals.spdlog}/include",
 		"%{externals.glad}/include"
@@ -177,7 +177,8 @@ project "ParuguEditor"
 		links
 		{
 			"SDL2",
-			"glad"
+			"glad",
+			"dl"
 		}
 	
 	filter "configurations:Debug"
