@@ -16,11 +16,9 @@ externals = {}
 externals["sdl2"] = "external/sdl2"
 externals["spdlog"] = "external/spdlog"
 externals["glad"] = "external/glad"
-externals["imgui"] = "external/imgui"
 
 -- Process Glad first --
 include "external/glad"
-include "external/imgui"
 
 project "AthiVegam"
 	location "AthiVegam"
@@ -35,6 +33,7 @@ project "AthiVegam"
 	files
 	{
 		"%{prj.name}/include/**.h",
+		"%{prj.name}/include/**.cpp",
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
 		"%{prj.name}/**.natvis"
@@ -45,8 +44,7 @@ project "AthiVegam"
 		"%{prj.name}/include",
 		"%{externals.sdl2}/include",
 		"%{externals.spdlog}/include",
-		"%{externals.glad}/include",
-		"%{externals.imgui}/"
+		"%{externals.glad}/include"
 	}
 
 	libdirs
@@ -80,8 +78,7 @@ project "AthiVegam"
 		links
 		{
 			"SDL2",
-			"glad",
-			"imgui"
+			"glad"
 		}
 		
 	filter {"system:macosx", "configurations:*"}
@@ -99,8 +96,7 @@ project "AthiVegam"
 		links
 		{
 			"SDL2.framework",
-			"glad",
-			"imgui"
+			"glad"			
 		}
 		
 	filter {"system:linux", "configurations:*"}
@@ -113,9 +109,7 @@ project "AthiVegam"
 		{
 			"SDL2",
 			"glad",
-			"dl",
-			"imgui"
-		}
+			"dl"		}
 	
 	filter "configurations:Debug"
 		defines
