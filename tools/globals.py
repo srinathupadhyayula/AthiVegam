@@ -1,5 +1,5 @@
 ENGINE_NAME = "AthiVegam"
-PROJECT_NAME = "ParuguEditor"
+PROJECT_NAME = "Parugu"
 TOOLS_DIR = "tools"
 
 V_MAJOR = 0

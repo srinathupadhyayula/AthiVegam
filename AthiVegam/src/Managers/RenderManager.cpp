@@ -13,9 +13,12 @@ namespace AthiVegam::Managers
 			, glGetString(GL_VENDOR)
 			, glGetString(GL_RENDERER)
 			, glGetString(GL_VERSION));
-
-		glEnable(GL_DEPTH_TEST); VEGAM_CHECK_GL_ERROR;
-		glDepthFunc(GL_LEQUAL); VEGAM_CHECK_GL_ERROR;
+		VEGAM_CHECK_GL_ERROR;
+		
+		glEnable(GL_DEPTH_TEST); 
+		VEGAM_CHECK_GL_ERROR;
+		glDepthFunc(GL_LEQUAL); 
+		VEGAM_CHECK_GL_ERROR;
 
 		glEnable(GL_BLEND); VEGAM_CHECK_GL_ERROR;
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); VEGAM_CHECK_GL_ERROR;
@@ -38,17 +41,20 @@ namespace AthiVegam::Managers
 	void RenderManager::Clear()
 	{
 		VEGAM_ASSERT(m_renderCommands.empty(), "Unflushed Render Commands in Queue!");
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); VEGAM_CHECK_GL_ERROR;
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+		VEGAM_CHECK_GL_ERROR;
 	}
 
 	void RenderManager::SetClearColor(float r, float g, float b, float a)
 	{
-		glClearColor(r, g, b, a); VEGAM_CHECK_GL_ERROR;
+		glClearColor(r, g, b, a); 
+		VEGAM_CHECK_GL_ERROR;
 	}
 
 	void RenderManager::SetWireframeMode(bool enabled)
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, enabled?GL_LINE:GL_FILL); VEGAM_CHECK_GL_ERROR;
+		glPolygonMode(GL_FRONT_AND_BACK, enabled?GL_LINE:GL_FILL); 
+		VEGAM_CHECK_GL_ERROR;
 	}
 
 	void RenderManager::Submit(std::unique_ptr<Graphics::RenderCommands::RenderCommand> renderCommand)

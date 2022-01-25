@@ -29,10 +29,12 @@ namespace AthiVegam::Graphics::RenderCommands
 			if (mesh->GetElementCount() > 0)
 			{
 				glDrawElements(GL_TRIANGLES, mesh->GetElementCount(), GL_UNSIGNED_INT, 0);
+				VEGAM_CHECK_GL_ERROR
 			}
 			else
 			{
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, mesh->GetVertexCount()); VEGAM_CHECK_GL_ERROR;
+				VEGAM_CHECK_GL_ERROR
 			}
 
 			shader->Unbind();

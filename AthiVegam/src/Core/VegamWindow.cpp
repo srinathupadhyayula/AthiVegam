@@ -6,6 +6,9 @@
 #include "AthiVegam/Input/Mouse.h"
 #include "AthiVegam/Input/Keyboard.h"
 #include "AthiVegam/Input/Controller.h"
+#include "AthiVegam/Graphics/Helpers.h"
+
+#include "external/imgui/imgui.h"
 
 namespace AthiVegam::Core
 {
@@ -27,7 +30,6 @@ namespace AthiVegam::Core
 	bool VegamWindow::Create()
 	{
 		m_sdlWindow = SDL_CreateWindow("AthiVegamGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-
 		if (!m_sdlWindow)
 		{
 			VEGAM_ERROR("Error creating window: {}", SDL_GetError());
@@ -45,17 +47,19 @@ namespace AthiVegam::Core
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-		SDL_SetWindowSize(m_sdlWindow, 200, 200);
+		SDL_SetWindowSize(m_sdlWindow, 800, 600);
 
 		m_glContext = SDL_GL_CreateContext(m_sdlWindow);
 
 		if (!m_glContext)
 		{
-			VEGAM_ERROR("Error creatinf OpelGl context: {}", SDL_GetError());
+			VEGAM_ERROR("Error creating OpelGl context: {}", SDL_GetError());
 			return false;
 		}
 
 		gladLoadGLLoader(SDL_GL_GetProcAddress);
+
+		m_imguiWindow.Create();
 
 		return true;
 	}
@@ -86,6 +90,8 @@ namespace AthiVegam::Core
 			default:
 				break;
 			}
+
+			m_imguiWindow.HandleSDLEvent(e);
 		}
 
 		// Update Input
@@ -106,6 +112,9 @@ namespace AthiVegam::Core
 
 	void VegamWindow::EndRender()
 	{
+		m_imguiWindow.BeginRender();
+		ImGui::ShowDemoWindow();
+		m_imguiWindow.EndRender();
 		SDL_GL_SwapWindow(m_sdlWindow);
 	}
 }
