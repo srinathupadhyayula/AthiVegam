@@ -48,3 +48,4 @@ Build/
 *Makefile
 *.pyc
 
+Parugu/imgui.ini
