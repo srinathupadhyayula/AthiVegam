@@ -5,7 +5,7 @@
 
 namespace AthiVegam::Managers
 {
-	constexpr auto const AV_DEFAULT_LOGGER_NAME = "VegamLogger";
+	constexpr auto AV_DEFAULT_LOGGER_NAME = "VegamLogger";
 
 	class LogManager
 	{
