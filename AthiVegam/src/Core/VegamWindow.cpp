@@ -1,22 +1,20 @@
 #include "AthiVegam/Core/VegamWindow.h"
-#include "SDL2/SDL.h"
-#include "glad/glad.h"
-#include "AthiVegam/Engine.h"
-#include "AthiVegam/Log.h"
-#include "AthiVegam/Input/Mouse.h"
-#include "AthiVegam/Input/Keyboard.h"
-#include "AthiVegam/Input/Controller.h"
-#include "AthiVegam/Graphics/Helpers.h"
 
+#include "AthiVegam/Engine.h"
+#include "AthiVegam/Graphics/Helpers.h"
+#include "AthiVegam/Input/Controller.h"
+#include "AthiVegam/Input/Keyboard.h"
+#include "AthiVegam/Input/Mouse.h"
+#include "AthiVegam/Log.h"
+#include "SDL2/SDL.h"
 #include "external/imgui/imgui.h"
+#include "glad/glad.h"
 
 namespace AthiVegam::Core
 {
 	VegamWindow::VegamWindow()
-		: m_sdlWindow(nullptr)
-		, m_glContext(nullptr)
+	    : m_sdlWindow(nullptr), m_glContext(nullptr)
 	{
-		
 	}
 
 	VegamWindow::~VegamWindow()
@@ -29,22 +27,31 @@ namespace AthiVegam::Core
 
 	bool VegamWindow::Create()
 	{
-		m_sdlWindow = SDL_CreateWindow("AthiVegamGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+		m_sdlWindow = SDL_CreateWindow(
+		    "AthiVegamGame", SDL_WINDOWPOS_CENTERED,
+		    SDL_WINDOWPOS_CENTERED, 800, 600,
+		    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 		if (!m_sdlWindow)
 		{
-			VEGAM_ERROR("Error creating window: {}", SDL_GetError());
+			VEGAM_ERROR("Error creating window: {}",
+			            SDL_GetError());
 			return false;
 		}
 
 		VEGAM_INFO("OpenGl Context Created!");
 
 #ifdef AV_PLATFORM_MAC
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-#endif //AV_PLATFORM_MAC
+		SDL_GL_SetAttribute(
+		    SDL_GL_CONTEXT_FLAGS,
+		    SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#endif // AV_PLATFORM_MAC
 
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+		                    SDL_GL_CONTEXT_PROFILE_CORE);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,
+		                    4);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,
+		                    1);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 		SDL_SetWindowSize(m_sdlWindow, 800, 600);
@@ -53,7 +60,8 @@ namespace AthiVegam::Core
 
 		if (!m_glContext)
 		{
-			VEGAM_ERROR("Error creating OpelGl context: {}", SDL_GetError());
+			VEGAM_ERROR("Error creating OpelGl context: {}",
+			            SDL_GetError());
 			return false;
 		}
 
@@ -82,10 +90,12 @@ namespace AthiVegam::Core
 				Engine::Instance().Quit();
 				break;
 			case SDL_CONTROLLERDEVICEADDED:
-				Input::Controller::OnControllerConnected(e.cdevice);
+				Input::Controller::OnControllerConnected(
+				    e.cdevice);
 				break;
 			case SDL_CONTROLLERDEVICEREMOVED:
-				Input::Controller::OnControllerDisconnected(e.cdevice);
+				Input::Controller::OnControllerDisconnected(
+				    e.cdevice);
 				break;
 			default:
 				break;
@@ -117,5 +127,4 @@ namespace AthiVegam::Core
 		m_imguiWindow.EndRender();
 		SDL_GL_SwapWindow(m_sdlWindow);
 	}
-}
-
+} // namespace AthiVegam::Core
