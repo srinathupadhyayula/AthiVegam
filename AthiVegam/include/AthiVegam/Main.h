@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AthiVegam/Engine.h"
 #include "AthiVegam/App.h"
+#include "AthiVegam/Engine.h"
 
 /* Client Application will implement this method*/
 std::unique_ptr<AthiVegam::App> CreateApp();
@@ -12,5 +12,3 @@ int main()
 
 	return 0;
 }
-
-

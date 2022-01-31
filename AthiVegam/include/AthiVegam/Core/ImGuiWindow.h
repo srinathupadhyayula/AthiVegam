@@ -1,13 +1,12 @@
 #pragma once
 
-
 typedef union SDL_Event SDL_Event;
 
 namespace AthiVegam::Core
 {
 	class ImGuiWindow
 	{
-	public:
+	  public:
 		void Create();
 		void Shutdown();
 
@@ -16,4 +15,4 @@ namespace AthiVegam::Core
 		void BeginRender();
 		void EndRender();
 	};
-}
+} // namespace AthiVegam::Core

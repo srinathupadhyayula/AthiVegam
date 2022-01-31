@@ -1,19 +1,17 @@
 #include "AthiVegam/Graphics/RenderCommands.h"
+
+#include "AthiVegam/Graphics/Helpers.h"
 #include "AthiVegam/Graphics/Mesh.h"
 #include "AthiVegam/Graphics/Shader.h"
-#include "AthiVegam/Graphics/Helpers.h"
-
 #include "AthiVegam/Log.h"
-
 #include "glad/glad.h"
 
 namespace AthiVegam::Graphics::RenderCommands
 {
-	RenderMesh::RenderMesh(std::weak_ptr<Mesh> mesh, std::weak_ptr<Shader> shader)
-		: m_mesh(mesh)
-		, m_shader(shader)
+	RenderMesh::RenderMesh(std::weak_ptr<Mesh> mesh,
+	                       std::weak_ptr<Shader> shader)
+	    : m_mesh(mesh), m_shader(shader)
 	{
-
 	}
 
 	void RenderMesh::Execute()
@@ -28,12 +26,16 @@ namespace AthiVegam::Graphics::RenderCommands
 
 			if (mesh->GetElementCount() > 0)
 			{
-				glDrawElements(GL_TRIANGLES, mesh->GetElementCount(), GL_UNSIGNED_INT, 0);
+				glDrawElements(GL_TRIANGLES,
+				               mesh->GetElementCount(),
+				               GL_UNSIGNED_INT, 0);
 				VEGAM_CHECK_GL_ERROR
 			}
 			else
 			{
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, mesh->GetVertexCount()); VEGAM_CHECK_GL_ERROR;
+				glDrawArrays(GL_TRIANGLE_STRIP, 0,
+				             mesh->GetVertexCount());
+				VEGAM_CHECK_GL_ERROR;
 				VEGAM_CHECK_GL_ERROR
 			}
 
@@ -42,8 +44,8 @@ namespace AthiVegam::Graphics::RenderCommands
 		}
 		else
 		{
-			VEGAM_WARN("Attempting to execute RenderMesh with invalid data");
+			VEGAM_WARN("Attempting to execute RenderMesh "
+			           "with invalid data");
 		}
-
 	}
-}
+} // namespace AthiVegam::Graphics::RenderCommands
