@@ -1,8 +1,9 @@
 #include "AthiVegam/Core/ImGuiWindow.h"
+
 #include "AthiVegam/Engine.h"
 #include "external/imgui/imgui.h"
-#include "external/imgui/imgui_impl_sdl.h"
 #include "external/imgui/imgui_impl_opengl3.h"
+#include "external/imgui/imgui_impl_sdl.h"
 
 namespace AthiVegam::Core
 {
@@ -12,7 +13,9 @@ namespace AthiVegam::Core
 
 		ImGui::CreateContext();
 		auto& vegamWindow = Engine::Instance().GetWindow();
-		ImGui_ImplSDL2_InitForOpenGL(vegamWindow.GetSDLWindow(), vegamWindow.GetGLContext());
+		ImGui_ImplSDL2_InitForOpenGL(
+		    vegamWindow.GetSDLWindow(),
+		    vegamWindow.GetGLContext());
 		ImGui_ImplOpenGL3_Init("#version 410");
 	}
 
@@ -31,13 +34,15 @@ namespace AthiVegam::Core
 	void ImGuiWindow::BeginRender()
 	{
 		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplSDL2_NewFrame(Engine::Instance().GetWindow().GetSDLWindow());
+		ImGui_ImplSDL2_NewFrame(
+		    Engine::Instance().GetWindow().GetSDLWindow());
 		ImGui::NewFrame();
 	}
 
 	void ImGuiWindow::EndRender()
 	{
 		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplOpenGL3_RenderDrawData(
+		    ImGui::GetDrawData());
 	}
-}
+} // namespace AthiVegam::Core

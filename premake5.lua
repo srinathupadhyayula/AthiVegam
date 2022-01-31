@@ -8,6 +8,8 @@ workspace "AthiVegam"
 		"Release"
 	}
 
+	warnings "High"
+
 tdir = "Build/bin/%{cfg.buildcfg}/%{prj.name}"
 odir = "Build/bin_obj/%{cfg.buildcfg}/%{prj.name}"
 
@@ -41,25 +43,19 @@ project "AthiVegam"
 
 	sysincludedirs
 	{
-		"%{prj.name}/include",
 		"%{externals.sdl2}/include",
 		"%{externals.spdlog}/include",
 		"%{externals.glad}/include"
 	}
 
+	includedirs
+	{
+		"%{prj.name}/include"
+	}
+
 	libdirs
 	{
 		"%{externals.sdl2}/lib"
-	}
-
-	flags
-	{
-		"FatalWarnings"
-	}
-
-	disablewarnings 
-	{
-		"4005"
 	}
 
 	defines
@@ -109,7 +105,8 @@ project "AthiVegam"
 		{
 			"SDL2",
 			"glad",
-			"dl"		}
+			"dl"		
+		}
 	
 	filter "configurations:Debug"
 		defines
@@ -149,16 +146,15 @@ project "Parugu"
 		"%{prj.name}/src/**.cpp"
 	}
 
-	sysincludedirs
+	includedirs
 	{
 		"AthiVegam/include",
 		"%{prj.name}/include",
-		"%{externals.spdlog}/include",
 	}
 
-	flags
+	sysincludedirs
 	{
-		"FatalWarnings"
+		"%{externals.spdlog}/include"
 	}
 
 	filter {"system:windows", "configurations:*"}

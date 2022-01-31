@@ -1,6 +1,7 @@
 #pragma once
 
 #include "spdlog/spdlog.h"
+
 #include <memory>
 
 namespace AthiVegam::Managers
@@ -9,12 +10,14 @@ namespace AthiVegam::Managers
 
 	class LogManager
 	{
-	public:
-		static void Initialize(const std::string& name = AV_DEFAULT_LOGGER_NAME);
+	  public:
+		static void Initialize(const std::string& name =
+		                           AV_DEFAULT_LOGGER_NAME);
 		static void Shutdown();
 
 		static std::shared_ptr<spdlog::logger> Logger();
-	private:
+
+	  private:
 		static std::shared_ptr<spdlog::logger> logger;
 	};
-}
+} // namespace AthiVegam::Managers

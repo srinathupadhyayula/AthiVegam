@@ -7,11 +7,11 @@
 
 #include <memory>
 
-namespace AthiVegam 
+namespace AthiVegam
 {
-	class Engine 
+	class Engine
 	{
-	public:
+	  public:
 		inline static auto& Instance()
 		{
 			// Magic Static pattern for Singleton instance
@@ -34,10 +34,16 @@ namespace AthiVegam
 		void Render();
 
 		// Getters for Managers
-		inline Managers::RenderManager& GetRenderManager() { return m_renderManager; }
-		inline Core::VegamWindow& GetWindow() { return m_window; }
+		inline Managers::RenderManager& GetRenderManager()
+		{
+			return m_renderManager;
+		}
+		inline Core::VegamWindow& GetWindow()
+		{
+			return m_window;
+		}
 
-	private:
+	  private:
 		// Singleton for now
 		Engine();
 
@@ -46,7 +52,7 @@ namespace AthiVegam
 
 		void GetInfo();
 
-	private:
+	  private:
 		bool m_isRunning;
 		bool m_isInitialized;
 
