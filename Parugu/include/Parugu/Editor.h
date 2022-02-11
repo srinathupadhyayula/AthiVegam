@@ -15,6 +15,7 @@ namespace Parugu
 		void Shutdown() override;
 		void Update() override;
 		void Render() override;
+		void ImGuiRender() override;
 
 	  private:
 		std::shared_ptr<AthiVegam::Graphics::Mesh> m_mesh;

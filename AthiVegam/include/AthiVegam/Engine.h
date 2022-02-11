@@ -43,6 +43,8 @@ namespace AthiVegam
 			return m_window;
 		}
 
+		inline App& GetApp() { return *m_app.get(); }
+
 	  private:
 		// Singleton for now
 		Engine();

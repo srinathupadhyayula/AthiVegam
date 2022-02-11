@@ -12,6 +12,9 @@ namespace AthiVegam::Core
 
 		void HandleSDLEvent(SDL_Event& e);
 
+		bool WantCaptureMouse();
+		bool WantCaptureKeyboard();
+
 		void BeginRender();
 		void EndRender();
 	};

@@ -11,5 +11,6 @@ namespace AthiVegam
 		virtual void Shutdown(){};
 		virtual void Update(){};
 		virtual void Render(){};
+		virtual void ImGuiRender(){};
 	};
 } // namespace AthiVegam

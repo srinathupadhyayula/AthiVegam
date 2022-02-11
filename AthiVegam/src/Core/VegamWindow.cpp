@@ -105,8 +105,15 @@ namespace AthiVegam::Core
 		}
 
 		// Update Input
-		Input::Mouse::Update();
-		Input::Keyboard::Update();
+		if (!m_imguiWindow.WantCaptureMouse())
+		{
+			Input::Mouse::Update();
+		}
+
+		if (!m_imguiWindow.WantCaptureKeyboard())
+		{
+			Input::Keyboard::Update();
+		}
 		Input::Controller::Update();
 	}
 
@@ -123,8 +130,9 @@ namespace AthiVegam::Core
 	void VegamWindow::EndRender()
 	{
 		m_imguiWindow.BeginRender();
-		ImGui::ShowDemoWindow();
+		Engine::Instance().GetApp().ImGuiRender();
 		m_imguiWindow.EndRender();
+
 		SDL_GL_SwapWindow(m_sdlWindow);
 	}
 } // namespace AthiVegam::Core

@@ -31,6 +31,16 @@ namespace AthiVegam::Core
 		ImGui_ImplSDL2_ProcessEvent(&e);
 	}
 
+	bool ImGuiWindow::WantCaptureMouse()
+	{
+		return ImGui::GetIO().WantCaptureMouse;
+	}
+
+	bool ImGuiWindow::WantCaptureKeyboard()
+	{
+		return ImGui::GetIO().WantCaptureKeyboard;
+	}
+
 	void ImGuiWindow::BeginRender()
 	{
 		ImGui_ImplOpenGL3_NewFrame();

@@ -5,6 +5,7 @@
 #include "Athivegam/Input/Controller.h"
 #include "Athivegam/Input/Keyboard.h"
 #include "Athivegam/Input/Mouse.h"
+#include "external/imgui/imgui.h"
 
 using namespace AthiVegam;
 
@@ -78,5 +79,14 @@ namespace Parugu
 		Engine::Instance().GetRenderManager().Submit(
 		    std::move(rc));
 		Engine::Instance().GetRenderManager().Flush();
+	}
+
+	void Editor::ImGuiRender()
+	{
+		if (ImGui::Begin("RectPos"))
+		{
+			VEGAM_TRACE("TEST");
+		}
+		ImGui::End();
 	}
 } // namespace Parugu
