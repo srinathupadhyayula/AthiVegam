@@ -16,6 +16,7 @@ namespace AthiVegam::Core
 		int wMin, hMin;
 		int flags;
 		float clearColorR, clearColorG, clearColorB;
+		ImGuiWindowProperties imguiProps;
 
 		WindowProperties();
 	};

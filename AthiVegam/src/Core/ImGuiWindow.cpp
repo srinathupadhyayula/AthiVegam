@@ -1,17 +1,34 @@
 #include "AthiVegam/Core/ImGuiWindow.h"
 
 #include "AthiVegam/Engine.h"
+#include "SDL2/SDL.h"
 #include "external/imgui/imgui.h"
 #include "external/imgui/imgui_impl_opengl3.h"
 #include "external/imgui/imgui_impl_sdl.h"
 
 namespace AthiVegam::Core
 {
-	void ImGuiWindow::Create()
+	void
+	ImGuiWindow::Create(const ImGuiWindowProperties& props)
 	{
 		IMGUI_CHECKVERSION();
 
 		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigWindowsMoveFromTitleBarOnly =
+		    props.MoveFromTitleBarOnly;
+		if (props.IsDockingEnabled)
+		{
+			io.ConfigFlags |=
+			    ImGuiConfigFlags_DockingEnable;
+		}
+		if (props.IsViewPortEnabled)
+		{
+			io.ConfigFlags |=
+			    ImGuiConfigFlags_ViewportsEnable;
+		}
+
 		auto& vegamWindow = Engine::Instance().GetWindow();
 		ImGui_ImplSDL2_InitForOpenGL(
 		    vegamWindow.GetSDLWindow(),
@@ -54,5 +71,16 @@ namespace AthiVegam::Core
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(
 		    ImGui::GetDrawData());
+
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.ConfigFlags
+		    & ImGuiConfigFlags_ViewportsEnable)
+		{
+			auto& window = Engine::Instance().GetWindow();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			SDL_GL_MakeCurrent(window.GetSDLWindow(),
+			                   window.GetGLContext());
+		}
 	}
 } // namespace AthiVegam::Core

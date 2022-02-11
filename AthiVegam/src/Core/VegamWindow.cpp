@@ -90,7 +90,7 @@ namespace AthiVegam::Core
 		    props.clearColorR, props.clearColorG,
 		    props.clearColorB, 1.0f);
 
-		m_imguiWindow.Create();
+		m_imguiWindow.Create(props.imguiProps);
 
 		return true;
 	}

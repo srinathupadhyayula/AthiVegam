@@ -22,6 +22,7 @@ namespace Parugu
 		AthiVegam::Core::WindowProperties props;
 		props.width = 800;
 		props.height = 600;
+		props.imguiProps.IsDockingEnabled = true;
 
 		return props;
 	}
@@ -92,9 +93,15 @@ namespace Parugu
 
 	void Editor::ImGuiRender()
 	{
-		if (ImGui::Begin("RectPos"))
+		ImGui::DockSpaceOverViewport(
+		    ImGui::GetMainViewport());
+		if (ImGui::Begin("TestWindowA"))
 		{
-			VEGAM_TRACE("TEST");
+		}
+		ImGui::End();
+
+		if (ImGui::Begin("TestWindowB"))
+		{
 		}
 		ImGui::End();
 	}
