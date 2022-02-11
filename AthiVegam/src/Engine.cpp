@@ -45,7 +45,9 @@ namespace AthiVegam
 				           (int32_t)version.minor,
 				           (int32_t)version.patch);
 
-				if (m_window.Create())
+				Core::WindowProperties props =
+				    m_app->GetWindowProperties();
+				if (m_window.Create(props))
 				{
 					// Initialize Managers
 					m_renderManager.Initialize();
@@ -80,6 +82,9 @@ namespace AthiVegam
 		/* Shutdown App */
 		m_app->Shutdown();
 		m_app.reset();
+
+		/* Shutdown Input */
+		Input::Controller::Shutdown();
 
 		/* Shutdown managers */
 		m_renderManager.Shutdown();

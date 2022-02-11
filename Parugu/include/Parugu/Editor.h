@@ -9,6 +9,9 @@ namespace Parugu
 {
 	class Editor : public AthiVegam::App
 	{
+		AthiVegam::Core::WindowProperties
+		GetWindowProperties();
+
 	  public:
 		virtual ~Editor();
 		void Initialize() override;

@@ -12,6 +12,24 @@
 
 namespace AthiVegam::Core
 {
+	WindowProperties::WindowProperties()
+	{
+		title = "VegamApp";
+		x = SDL_WINDOWPOS_CENTERED;
+		y = SDL_WINDOWPOS_CENTERED;
+		width = 1920;
+		height = 1080;
+		wMin = 320;
+		hMin = 180;
+		flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+		clearColorR = static_cast<float>(0x64)
+		              / static_cast<float>(0xFF);
+		clearColorG = static_cast<float>(0x95)
+		              / static_cast<float>(0xFF);
+		clearColorB = static_cast<float>(0xED)
+		              / static_cast<float>(0xFF);
+	}
+
 	VegamWindow::VegamWindow()
 	    : m_sdlWindow(nullptr), m_glContext(nullptr)
 	{
@@ -25,12 +43,12 @@ namespace AthiVegam::Core
 		}
 	}
 
-	bool VegamWindow::Create()
+	bool VegamWindow::Create(const WindowProperties& props)
 	{
 		m_sdlWindow = SDL_CreateWindow(
-		    "AthiVegamGame", SDL_WINDOWPOS_CENTERED,
-		    SDL_WINDOWPOS_CENTERED, 800, 600,
-		    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+		    props.title.c_str(), props.x, props.y,
+		    props.width, props.height, props.flags);
+
 		if (!m_sdlWindow)
 		{
 			VEGAM_ERROR("Error creating window: {}",
@@ -54,7 +72,8 @@ namespace AthiVegam::Core
 		                    1);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-		SDL_SetWindowSize(m_sdlWindow, 800, 600);
+		SDL_SetWindowMinimumSize(m_sdlWindow, props.wMin,
+		                         props.hMin);
 
 		m_glContext = SDL_GL_CreateContext(m_sdlWindow);
 
@@ -66,6 +85,10 @@ namespace AthiVegam::Core
 		}
 
 		gladLoadGLLoader(SDL_GL_GetProcAddress);
+
+		Engine::Instance().GetRenderManager().SetClearColor(
+		    props.clearColorR, props.clearColorG,
+		    props.clearColorB, 1.0f);
 
 		m_imguiWindow.Create();
 
@@ -135,4 +158,5 @@ namespace AthiVegam::Core
 
 		SDL_GL_SwapWindow(m_sdlWindow);
 	}
+
 } // namespace AthiVegam::Core

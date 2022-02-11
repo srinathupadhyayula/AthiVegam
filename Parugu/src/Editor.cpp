@@ -16,6 +16,15 @@ std::unique_ptr<App> CreateApp()
 
 namespace Parugu
 {
+	AthiVegam::Core::WindowProperties
+	Editor::GetWindowProperties()
+	{
+		AthiVegam::Core::WindowProperties props;
+		props.width = 800;
+		props.height = 600;
+
+		return props;
+	}
 	Editor::~Editor()
 	{
 		m_shader.reset();
