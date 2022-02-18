@@ -1,5 +1,7 @@
 #include "AthiVegam/Managers/RenderManager.h"
 
+#include "AthiVegam/Engine.h"
+#include "AthiVegam/Graphics/FrameBuffer.h"
 #include "AthiVegam/Graphics/Helpers.h"
 #include "AthiVegam/Log.h"
 #include "glad/glad.h"
@@ -53,6 +55,13 @@ namespace AthiVegam::Managers
 		VEGAM_CHECK_GL_ERROR;
 	}
 
+	void RenderManager::SetViewport(int x, int y, int width,
+	                                int height)
+	{
+		glViewport(x, y, width, height);
+		VEGAM_CHECK_GL_ERROR;
+	}
+
 	void RenderManager::SetClearColor(float r, float g,
 	                                  float b, float a)
 	{
@@ -83,6 +92,55 @@ namespace AthiVegam::Managers
 			m_renderCommands.pop();
 
 			rc->Execute();
+		}
+	}
+
+	void RenderManager::PushFramebuffer(
+	    std::shared_ptr<Graphics::Framebuffer> framebuffer)
+	{
+		m_framebuffers.push(framebuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER,
+		                  framebuffer->GetFbo());
+		VEGAM_CHECK_GL_ERROR;
+		uint32_t width, height;
+		framebuffer->GetSize(width, height);
+		SetViewport(0, 0, width, height);
+
+		float r, g, b, a;
+		framebuffer->GetClearColor(r, g, b, a);
+		glClearColor(r, g, b, a);
+		VEGAM_CHECK_GL_ERROR;
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		VEGAM_CHECK_GL_ERROR;
+	}
+	void RenderManager::PopFramebuffer()
+	{
+		VEGAM_ASSERT(
+		    !m_framebuffers.empty(),
+		    "RenderManager::PopFramebuffer - Empty stack");
+		if (!m_framebuffers.empty())
+		{
+			m_framebuffers.pop();
+			if (!m_framebuffers.empty())
+			{
+				auto nextFb = m_framebuffers.top();
+				glBindFramebuffer(GL_FRAMEBUFFER,
+				                  nextFb->GetFbo());
+				VEGAM_CHECK_GL_ERROR;
+				uint32_t width, height;
+				nextFb->GetSize(width, height);
+				SetViewport(0, 0, width, height);
+			}
+			else
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				VEGAM_CHECK_GL_ERROR;
+				auto& window =
+				    Engine::Instance().GetWindow();
+				int width, height;
+				window.GetSize(width, height);
+				SetViewport(0, 0, width, height);
+			}
 		}
 	}
 } // namespace AthiVegam::Managers

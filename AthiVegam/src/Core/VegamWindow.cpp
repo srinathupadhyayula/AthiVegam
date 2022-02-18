@@ -1,7 +1,9 @@
 #include "AthiVegam/Core/VegamWindow.h"
 
 #include "AthiVegam/Engine.h"
+#include "AthiVegam/Graphics/FrameBuffer.h"
 #include "AthiVegam/Graphics/Helpers.h"
+#include "AthiVegam/Graphics/RenderCommands.h"
 #include "AthiVegam/Input/Controller.h"
 #include "AthiVegam/Input/Keyboard.h"
 #include "AthiVegam/Input/Mouse.h"
@@ -71,6 +73,7 @@ namespace AthiVegam::Core
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,
 		                    1);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
 		SDL_SetWindowMinimumSize(m_sdlWindow, props.wMin,
 		                         props.hMin);
@@ -86,7 +89,10 @@ namespace AthiVegam::Core
 
 		gladLoadGLLoader(SDL_GL_GetProcAddress);
 
-		Engine::Instance().GetRenderManager().SetClearColor(
+		m_framebuffer =
+		    std::make_shared<Graphics::Framebuffer>(
+		        props.width, props.height);
+		m_framebuffer->SetClearColor(
 		    props.clearColorR, props.clearColorG,
 		    props.clearColorB, 1.0f);
 
@@ -147,11 +153,18 @@ namespace AthiVegam::Core
 
 	void VegamWindow::BeginRender()
 	{
-		Engine::Instance().GetRenderManager().Clear();
+		auto& rm = Engine::Instance().GetRenderManager();
+		rm.Clear();
+		rm.Submit(VEGAM_SUBMIT_RC(PushFramebuffer,
+		                          m_framebuffer));
 	}
 
 	void VegamWindow::EndRender()
 	{
+		auto& rm = Engine::Instance().GetRenderManager();
+		rm.Submit(VEGAM_SUBMIT_RC(PopFramebuffer));
+		rm.Flush();
+
 		m_imguiWindow.BeginRender();
 		Engine::Instance().GetApp().ImGuiRender();
 		m_imguiWindow.EndRender();
