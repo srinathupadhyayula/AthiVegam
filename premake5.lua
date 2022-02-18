@@ -18,6 +18,7 @@ externals = {}
 externals["sdl2"] = "external/sdl2"
 externals["spdlog"] = "external/spdlog"
 externals["glad"] = "external/glad"
+externals["builtin"] = "%{prj.name}/include/external"
 
 -- Process Glad first --
 include "external/glad"
@@ -35,7 +36,9 @@ project "AthiVegam"
 	files
 	{
 		"%{prj.name}/include/**.h",
+		"%{prj.name}/include/**.hpp",
 		"%{prj.name}/include/**.cpp",
+		"%{prj.name}/include/**.inl",
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
 		"%{prj.name}/**.natvis"
@@ -45,7 +48,8 @@ project "AthiVegam"
 	{
 		"%{externals.sdl2}/include",
 		"%{externals.spdlog}/include",
-		"%{externals.glad}/include"
+		"%{externals.glad}/include",
+		"%{externals.builtin}"
 	}
 
 	includedirs

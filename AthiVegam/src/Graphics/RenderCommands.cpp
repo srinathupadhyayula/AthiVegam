@@ -1,5 +1,7 @@
 #include "AthiVegam/Graphics/RenderCommands.h"
 
+#include "AthiVegam/Engine.h"
+#include "AthiVegam/Graphics/FrameBuffer.h"
 #include "AthiVegam/Graphics/Helpers.h"
 #include "AthiVegam/Graphics/Mesh.h"
 #include "AthiVegam/Graphics/Shader.h"
@@ -47,5 +49,29 @@ namespace AthiVegam::Graphics::RenderCommands
 			VEGAM_WARN("Attempting to execute RenderMesh "
 			           "with invalid data");
 		}
+	}
+
+	void PushFramebuffer::Execute()
+	{
+		std::shared_ptr<Framebuffer> fb =
+		    m_framebuffer.lock();
+		if (fb)
+		{
+			Engine::Instance()
+			    .GetRenderManager()
+			    .PushFramebuffer(fb);
+		}
+		else
+		{
+			VEGAM_WARN("Attempting to execute Push Frame "
+			           "Buffer with invalid data");
+		}
+	}
+
+	void PopFramebuffer::Execute()
+	{
+		Engine::Instance()
+		    .GetRenderManager()
+		    .PopFramebuffer();
 	}
 } // namespace AthiVegam::Graphics::RenderCommands

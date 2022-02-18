@@ -1,5 +1,6 @@
 #include "Parugu/Editor.h"
 
+#include "AthiVegam/Graphics/FrameBuffer.h"
 #include "AthiVegam/Log.h"
 #include "AthiVegam/Main.h"
 #include "Athivegam/Input/Controller.h"
@@ -22,6 +23,7 @@ namespace Parugu
 		AthiVegam::Core::WindowProperties props;
 		props.width = 800;
 		props.height = 600;
+		props.imguiProps.IsDockingEnabled = true;
 
 		return props;
 	}
@@ -92,9 +94,33 @@ namespace Parugu
 
 	void Editor::ImGuiRender()
 	{
-		if (ImGui::Begin("RectPos"))
+		ImGui::DockSpaceOverViewport(
+		    ImGui::GetMainViewport());
+		if (ImGui::Begin("TestA"))
 		{
-			VEGAM_TRACE("TEST");
+		}
+		ImGui::End();
+
+		if (ImGui::Begin("TestB"))
+		{
+		}
+		ImGui::End();
+
+		if (ImGui::Begin("GameView"))
+		{
+			if (ImGui::IsWindowHovered())
+			{
+				ImGui::CaptureMouseFromApp(false);
+				// ImGui::CaptureKeyboardFromApp(false);
+			}
+			auto& window = Engine::Instance().GetWindow();
+			ImVec2 size = {480, 320};
+			ImVec2 uv0 = {0, 1};
+			ImVec2 uv1 = {1, 0};
+			ImGui::Image(
+			    (void*)(intptr_t)window.GetFramebuffer()
+			        ->GetTextureId(),
+			    size, uv0, uv1);
 		}
 		ImGui::End();
 	}
