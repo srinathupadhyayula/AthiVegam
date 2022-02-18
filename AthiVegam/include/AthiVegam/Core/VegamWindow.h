@@ -2,10 +2,16 @@
 
 #include "ImGuiWindow.h"
 
+#include <memory>
 #include <string>
 
 struct SDL_Window;
 using SDL_GLContext = void*;
+
+namespace AthiVegam::Graphics
+{
+	class Framebuffer;
+}
 
 namespace AthiVegam::Core
 {
@@ -16,6 +22,7 @@ namespace AthiVegam::Core
 		int wMin, hMin;
 		int flags;
 		float clearColorR, clearColorG, clearColorB;
+		ImGuiWindowProperties imguiProps;
 
 		WindowProperties();
 	};
@@ -42,10 +49,16 @@ namespace AthiVegam::Core
 		{
 			return m_glContext;
 		}
+		inline Graphics::Framebuffer* GetFramebuffer()
+		{
+			return m_framebuffer.get();
+		}
 
 	  private:
 		SDL_Window* m_sdlWindow;
 		SDL_GLContext m_glContext;
 		ImGuiWindow m_imguiWindow;
+		std::shared_ptr<Graphics::Framebuffer>
+		    m_framebuffer;
 	};
 } // namespace AthiVegam::Core
