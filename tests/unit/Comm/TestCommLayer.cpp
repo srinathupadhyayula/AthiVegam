@@ -349,15 +349,15 @@ TEST_F(CommLayerTest, Channel_ConcurrentPublish)
 {
     ChannelDesc desc{.topic = "test.concurrent", .mode = DeliveryMode::Sync};
     Channel channel(1, desc);
-    
+
     std::atomic<int> count{0};
     channel.Subscribe([&count](const Payload&) {
         count++;
     });
-    
+
     constexpr int numThreads = 4;
     constexpr int messagesPerThread = 100;
-    
+
     std::vector<std::thread> threads;
     for (int i = 0; i < numThreads; ++i)
     {
@@ -368,13 +368,262 @@ TEST_F(CommLayerTest, Channel_ConcurrentPublish)
             }
         });
     }
-    
+
     for (auto& thread : threads)
     {
         thread.join();
     }
-    
+
     EXPECT_EQ(count.load(), numThreads * messagesPerThread);
+}
+
+TEST_F(CommLayerTest, Channel_ConcurrentSubscribeUnsubscribe)
+{
+    ChannelDesc desc{.topic = "test.concurrent.subsub", .mode = DeliveryMode::Sync};
+    Channel channel(1, desc);
+
+    std::atomic<int> subscribeCount{0};
+    std::atomic<int> unsubscribeCount{0};
+    std::vector<SubscriberId> subscriberIds;
+    std::mutex idsMutex;
+
+    constexpr int numThreads = 4;
+    constexpr int operationsPerThread = 50;
+
+    std::vector<std::thread> threads;
+
+    // 2 threads subscribing
+    for (int i = 0; i < 2; ++i)
+    {
+        threads.emplace_back([&]() {
+            for (int j = 0; j < operationsPerThread; ++j)
+            {
+                auto id = channel.Subscribe([](const Payload&) {});
+                if (id != 0)
+                {
+                    subscribeCount++;
+                    std::lock_guard<std::mutex> lock(idsMutex);
+                    subscriberIds.push_back(id);
+                }
+            }
+        });
+    }
+
+    // 2 threads unsubscribing
+    for (int i = 0; i < 2; ++i)
+    {
+        threads.emplace_back([&]() {
+            for (int j = 0; j < operationsPerThread; ++j)
+            {
+                // Wait a bit to let some subscribers be added
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
+
+                SubscriberId idToRemove = 0;
+                {
+                    std::lock_guard<std::mutex> lock(idsMutex);
+                    if (!subscriberIds.empty())
+                    {
+                        idToRemove = subscriberIds.back();
+                        subscriberIds.pop_back();
+                    }
+                }
+
+                if (idToRemove != 0 && channel.Unsubscribe(idToRemove))
+                {
+                    unsubscribeCount++;
+                }
+            }
+        });
+    }
+
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    // Verify no crashes occurred and counts are reasonable
+    EXPECT_GT(subscribeCount.load(), 0);
+    EXPECT_GT(unsubscribeCount.load(), 0);
+
+    // Final subscriber count should be subscribeCount - unsubscribeCount
+    usize expectedCount = subscribeCount.load() - unsubscribeCount.load();
+    EXPECT_EQ(channel.GetSubscriberCount(), expectedCount);
+}
+
+// ============================================================================
+// Callback Re-entrancy Tests (Iterator Invalidation Fix)
+// ============================================================================
+
+TEST_F(CommLayerTest, Channel_CallbackSubscribesDuringInvoke)
+{
+    ChannelDesc desc{.topic = "test.reentrant.subscribe", .mode = DeliveryMode::Sync};
+    Channel channel(1, desc);
+
+    std::atomic<int> callbackCount{0};
+    std::atomic<bool> newSubscriberCalled{false};
+
+    // First subscriber that will add another subscriber during callback
+    channel.Subscribe([&](const Payload& payload) {
+        callbackCount++;
+
+        // Add new subscriber during callback invocation
+        channel.Subscribe([&](const Payload&) {
+            newSubscriberCalled = true;
+        });
+    });
+
+    // Initial subscriber count
+    EXPECT_EQ(channel.GetSubscriberCount(), 1);
+
+    // Publish message - should trigger re-entrant Subscribe()
+    channel.Publish(Payload(1));
+
+    // Verify first callback was invoked
+    EXPECT_EQ(callbackCount.load(), 1);
+
+    // Verify new subscriber was added (count should be 2 now)
+    EXPECT_EQ(channel.GetSubscriberCount(), 2);
+
+    // Publish another message - new subscriber should be invoked
+    channel.Publish(Payload(2));
+
+    EXPECT_TRUE(newSubscriberCalled.load());
+    EXPECT_EQ(callbackCount.load(), 2); // First subscriber called again
+}
+
+TEST_F(CommLayerTest, Channel_CallbackUnsubscribesSelfDuringInvoke)
+{
+    ChannelDesc desc{.topic = "test.reentrant.unsubscribe", .mode = DeliveryMode::Sync};
+    Channel channel(1, desc);
+
+    std::atomic<int> callbackCount{0};
+    SubscriberId selfId = 0;
+
+    // Subscriber that unsubscribes itself during callback
+    selfId = channel.Subscribe([&](const Payload& payload) {
+        callbackCount++;
+
+        // Unsubscribe self during callback invocation
+        bool removed = channel.Unsubscribe(selfId);
+        EXPECT_TRUE(removed);
+    });
+
+    EXPECT_NE(selfId, 0);
+    EXPECT_EQ(channel.GetSubscriberCount(), 1);
+
+    // Publish message - callback should unsubscribe itself
+    channel.Publish(Payload(1));
+
+    EXPECT_EQ(callbackCount.load(), 1);
+    EXPECT_EQ(channel.GetSubscriberCount(), 0);
+
+    // Publish another message - callback should NOT be invoked
+    channel.Publish(Payload(2));
+
+    EXPECT_EQ(callbackCount.load(), 1); // Still 1, not called again
+}
+
+// ============================================================================
+// Initialization and Shutdown Tests
+// ============================================================================
+
+TEST_F(CommLayerTest, Bus_OperationsAfterShutdown)
+{
+    // Shutdown the bus explicitly
+    Bus::Instance().Shutdown();
+
+    // Verify RegisterChannel returns error after shutdown
+    ChannelDesc desc{.topic = "test.after.shutdown", .mode = DeliveryMode::Sync};
+    auto regResult = Bus::Instance().RegisterChannel(desc);
+    EXPECT_FALSE(regResult.has_value());
+
+    // Verify GetChannel returns nullptr after shutdown
+    Channel* channel = Bus::Instance().GetChannel(1);
+    EXPECT_EQ(channel, nullptr);
+
+    // Verify GetChannelByTopic returns nullptr after shutdown
+    channel = Bus::Instance().GetChannelByTopic("test.after.shutdown");
+    EXPECT_EQ(channel, nullptr);
+
+    // Verify Publish returns error after shutdown
+    auto pubResult = Bus::Instance().PublishToTopic("test.after.shutdown", Payload(42));
+    EXPECT_FALSE(pubResult.has_value());
+
+    // Verify DrainAll doesn't crash after shutdown
+    Bus::Instance().DrainAll(); // Should return early, no crash
+
+    // Re-initialize for cleanup (TearDown will call Shutdown again, which is safe)
+    Bus::Instance().Initialize();
+}
+
+// Test without fixture to verify operations before Initialize()
+TEST(CommLayerTestNoFixture, Bus_OperationsBeforeInitialize)
+{
+    // Initialize logger (needed for Bus operations)
+    Logger::Initialize();
+
+    // Get Bus instance but DON'T call Initialize()
+    Bus& bus = Bus::Instance();
+
+    // Verify RegisterChannel returns error before Initialize()
+    ChannelDesc desc{.topic = "test.before.init", .mode = DeliveryMode::Sync};
+    auto regResult = bus.RegisterChannel(desc);
+    EXPECT_FALSE(regResult.has_value());
+
+    // Verify GetChannel returns nullptr before Initialize()
+    Channel* channel = bus.GetChannel(1);
+    EXPECT_EQ(channel, nullptr);
+
+    // Verify GetChannelByTopic returns nullptr before Initialize()
+    channel = bus.GetChannelByTopic("test.before.init");
+    EXPECT_EQ(channel, nullptr);
+
+    // Verify DrainAll doesn't crash before Initialize()
+    bus.DrainAll(); // Should return early, no crash
+
+    // Now initialize and verify operations work
+    bus.Initialize();
+
+    // After Initialize(), operations should work
+    auto regResult2 = bus.RegisterChannel(desc);
+    EXPECT_TRUE(regResult2.has_value());
+
+    channel = bus.GetChannel(regResult2.value());
+    EXPECT_NE(channel, nullptr);
+
+    // Cleanup
+    bus.Shutdown();
+    Logger::Shutdown();
+}
+
+// ============================================================================
+// Error Condition Tests
+// ============================================================================
+
+TEST_F(CommLayerTest, Bus_RegisterChannelEmptyTopic)
+{
+    // Attempt to register channel with empty topic
+    ChannelDesc desc{.topic = "", .mode = DeliveryMode::Sync};
+    auto result = Bus::Instance().RegisterChannel(desc);
+
+    // Should return error
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), BusError::InvalidTopic);
+}
+
+TEST_F(CommLayerTest, Channel_SubscribeNullCallback)
+{
+    ChannelDesc desc{.topic = "test.null.callback", .mode = DeliveryMode::Sync};
+    Channel channel(1, desc);
+
+    // Attempt to subscribe with null callback
+    SubscriberId id = channel.Subscribe(nullptr);
+
+    // Should return invalid ID (0)
+    EXPECT_EQ(id, 0);
+
+    // Subscriber count should remain 0
+    EXPECT_EQ(channel.GetSubscriberCount(), 0);
 }
 
 // ============================================================================
