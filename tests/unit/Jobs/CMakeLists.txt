@@ -19,6 +19,9 @@ target_link_libraries(JobsTests
         GTest::gtest_main
 )
 
+# Include GoogleTest module for test discovery
+include(GoogleTest)
+
 # Add tests to CTest
 gtest_discover_tests(JobsTests)
 
