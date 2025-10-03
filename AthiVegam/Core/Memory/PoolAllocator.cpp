@@ -104,11 +104,21 @@ void PoolAllocator::Deallocate(void* ptr)
     }
 
     // Validate that pointer is aligned to block boundary
-    usize offset = static_cast<byte*>(ptr) - _buffer;
+    const usize offset = static_cast<byte*>(ptr) - _buffer;
     if (offset % _blockSize != 0)
     {
         spdlog::error("PoolAllocator::Deallocate called with misaligned pointer");
         return;
+    }
+
+    // Detect double free by scanning free list (O(n), acceptable for debug safety)
+    for (void* node = _freeList; node != nullptr; node = *static_cast<void**>(node))
+    {
+        if (node == ptr)
+        {
+            spdlog::error("PoolAllocator::Deallocate detected double free");
+            return;
+        }
     }
 
     // Push to free list

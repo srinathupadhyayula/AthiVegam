@@ -60,9 +60,12 @@ void* AlignedAlloc(usize size, usize alignment)
 
     if (ptr != nullptr)
     {
+        // Use actual allocated size from mimalloc for accurate stats
+        const usize actualSize = mi_usable_size(ptr);
+
         // Update statistics
-        _globalStats.totalAllocated.fetch_add(size, std::memory_order_relaxed);
-        _globalStats.currentUsage.fetch_add(size, std::memory_order_relaxed);
+        _globalStats.totalAllocated.fetch_add(actualSize, std::memory_order_relaxed);
+        _globalStats.currentUsage.fetch_add(actualSize, std::memory_order_relaxed);
         _globalStats.allocationCount.fetch_add(1, std::memory_order_relaxed);
 
         // Update peak usage

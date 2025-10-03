@@ -3,6 +3,8 @@
 #include <processthreadsapi.h>
 #include <string>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
+
 
 namespace Engine::Threading {
 
@@ -16,7 +18,17 @@ namespace {
     DWORD WINAPI ThreadProc(LPVOID param)
     {
         auto* context = static_cast<ThreadContext*>(param);
-        context->function();
+        try
+        {
+            context->function();
+        }
+        catch (...)
+        {
+            // Avoid throwing across threads; optionally log
+            spdlog::error("Unhandled exception in thread function");
+            delete context;
+            return static_cast<DWORD>(-1);
+        }
         delete context;
         return 0;
     }
@@ -136,7 +148,24 @@ void YieldThread()
 Mutex::Mutex()
 {
     _handle = new CRITICAL_SECTION();
-    InitializeCriticalSection(static_cast<CRITICAL_SECTION*>(_handle));
+#if _WIN32_WINNT >= 0x0600
+    if (!InitializeCriticalSectionEx(static_cast<CRITICAL_SECTION*>(_handle), 0, 0))
+    {
+        spdlog::error("InitializeCriticalSectionEx failed: {}", GetLastError());
+        delete static_cast<CRITICAL_SECTION*>(_handle);
+        _handle = nullptr;
+        throw std::runtime_error("Failed to initialize Mutex");
+    }
+#else
+    __try {
+        InitializeCriticalSection(static_cast<CRITICAL_SECTION*>(_handle));
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        spdlog::error("InitializeCriticalSection raised exception");
+        delete static_cast<CRITICAL_SECTION*>(_handle);
+        _handle = nullptr;
+        throw;
+    }
+#endif
 }
 
 Mutex::~Mutex()

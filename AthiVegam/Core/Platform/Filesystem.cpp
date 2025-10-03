@@ -60,7 +60,7 @@ namespace {
 Result<FileHandle> OpenFile(std::string_view path, OpenMode mode)
 {
     DWORD desiredAccess = 0;
-    DWORD creationDisposition = OPEN_EXISTING;
+    DWORD creationDisposition = 0;
 
     // Handle access flags
     if (mode & OpenMode::Read)
@@ -70,23 +70,36 @@ Result<FileHandle> OpenFile(std::string_view path, OpenMode mode)
     if (mode & OpenMode::Write)
     {
         desiredAccess |= GENERIC_WRITE;
-        creationDisposition = CREATE_ALWAYS;
     }
     if (mode & OpenMode::Append)
     {
         desiredAccess |= FILE_APPEND_DATA;
+    }
+
+    // Establish precedence for creation disposition
+    if (mode & OpenMode::Append)
+    {
         creationDisposition = OPEN_ALWAYS;
     }
-    if (mode & OpenMode::Truncate)
+    else if (mode & OpenMode::Truncate)
     {
-        creationDisposition = TRUNCATE_EXISTING;
+        // Ensure file is created or truncated
+        creationDisposition = CREATE_ALWAYS;
+    }
+    else if (mode & OpenMode::Write)
+    {
+        creationDisposition = CREATE_ALWAYS;
+    }
+    else
+    {
+        creationDisposition = OPEN_EXISTING;
     }
 
     std::wstring widePath = Utf8ToWide(path);
     HANDLE handle = CreateFileW(
         widePath.c_str(),
         desiredAccess,
-        FILE_SHARE_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         nullptr,
         creationDisposition,
         FILE_ATTRIBUTE_NORMAL,
@@ -350,9 +363,15 @@ std::string GetAbsolutePath(std::string_view path)
         return std::string(path);
     }
 
-    std::wstring buffer(bufferSize, 0);
-    GetFullPathNameW(widePath.c_str(), bufferSize, buffer.data(), nullptr);
-    return WideToUtf8(buffer);
+    std::wstring buffer(bufferSize, L'\0');
+    DWORD written = GetFullPathNameW(widePath.c_str(), bufferSize, buffer.data(), nullptr);
+    if (written == 0)
+    {
+        return std::string(path);
+    }
+    // Exclude the terminating NUL if present
+    std::wstring_view view(buffer.data(), written);
+    return WideToUtf8(std::wstring(view));
 }
 
 std::string_view GetExtension(std::string_view path)
@@ -362,7 +381,8 @@ std::string_view GetExtension(std::string_view path)
     {
         return std::string_view();
     }
-    return path.substr(pos);
+    // Return extension without the dot
+    return path.substr(pos + 1);
 }
 
 std::string_view GetFilename(std::string_view path)
@@ -416,15 +436,22 @@ std::string JoinPath(Span<const std::string_view> components)
 std::string NormalizePath(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    wchar_t buffer[MAX_PATH];
-
-    HRESULT hr = PathCchCanonicalizeEx(buffer, MAX_PATH, widePath.c_str(), PATHCCH_NONE);
+    // Start with a reasonable size and grow if needed
+    std::wstring out(512, L'\0');
+    HRESULT hr = PathCchCanonicalizeEx(out.data(), out.size(), widePath.c_str(), PATHCCH_NONE);
+    if (hr == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
+    {
+        // Try with a larger buffer to accommodate extended-length paths
+        out.assign(32768, L'\0');
+        hr = PathCchCanonicalizeEx(out.data(), out.size(), widePath.c_str(), PATHCCH_NONE);
+    }
     if (FAILED(hr))
     {
         return std::string(path);
     }
-
-    return WideToUtf8(buffer);
+    // Ensure proper length without trailing NULs
+    size_t len = wcsnlen(out.c_str(), out.size());
+    return WideToUtf8(std::wstring(out.c_str(), len));
 }
 
 } // namespace Engine::Filesystem

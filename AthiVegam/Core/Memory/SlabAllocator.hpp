@@ -125,21 +125,23 @@ template<typename T>
 Handle<T> SlabAllocator<T>::Allocate()
 {
     u32 index;
-    
+
     if (!_freeList.empty()) {
         // Reuse free slot
         index = _freeList.back();
         _freeList.pop_back();
+        // Reconstruct object to a known default state
+        new (&_slots[index].object) T();
     } else {
-        // Allocate new slot
+        // Allocate new slot (default constructs T as part of Slot)
         index = static_cast<u32>(_slots.size());
-        _slots.push_back(Slot{});
+        _slots.emplace_back();
         _slots[index].version = 1;
     }
-    
+
     _slots[index].occupied = true;
     ++_allocatedCount;
-    
+
     return Handle<T>(index, _slots[index].version);
 }
 
@@ -149,8 +151,10 @@ void SlabAllocator<T>::Deallocate(Handle<T> handle)
     if (!IsValid(handle)) {
         return;
     }
-    
+
     u32 index = handle.Index();
+    // Invoke destructor to release any resources held by T
+    _slots[index].object.~T();
     _slots[index].occupied = false;
     _slots[index].version++;
     _freeList.push_back(index);
