@@ -70,3 +70,8 @@ docs/xml/
 *.zip
 *.tar.gz
 *.7z
+
+.vscode
+.augment
+.qodo
+.roo*

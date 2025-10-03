@@ -1,5 +1,6 @@
 #include "Comm/Channel.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Memory/FrameArena.hpp"
 #include <algorithm>
 
 namespace Engine::Comm {

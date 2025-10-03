@@ -3,12 +3,16 @@
 #include "Comm/Types.hpp"
 #include "Comm/Payload.hpp"
 #include "Core/Types.hpp"
-#include "Core/Memory/FrameArena.hpp"
 #include <string>
 #include <string_view>
 #include <functional>
 #include <vector>
 #include <memory>
+
+// Forward declaration
+namespace Engine {
+    class FrameArena;
+}
 
 namespace Engine::Comm {
 
