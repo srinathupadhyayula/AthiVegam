@@ -29,3 +29,6 @@ endfunction()
 # Placeholder test to ensure build system works
 add_unit_test(TestPlaceholder TestPlaceholder.cpp)
 
+# Comm module tests
+add_subdirectory(Comm)
+

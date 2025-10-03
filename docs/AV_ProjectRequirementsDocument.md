@@ -126,19 +126,19 @@ Build a modular, data‑oriented game engine in **C++23/26** with **C#/.NET 8** 
 - [x] Configure CLion for one-click run/debug workflow.
     
 
-### Phase 1 – Communication Layer
+### Phase 1 – Communication Layer ✅ COMPLETE
 
-- [ ] Define `ChannelDesc`, `Channel`, `Bus`.
-    
-- [ ] Implement `publish`/`subscribe`.
-    
-- [ ] Add delivery modes: Sync, Async, Buffered.
-    
-- [ ] Add `LogEntry` struct and severity levels.
-    
-- [ ] Add event categories (Gameplay/UI/System).
-    
-- [ ] Unit tests: publish/subscribe, sync vs async.
+- [x] Define `ChannelDesc`, `Channel`, `Bus`.
+
+- [x] Implement `publish`/`subscribe`.
+
+- [x] Add delivery modes: Sync, Async (stubbed), Buffered.
+
+- [x] Add `LogEntry` struct and severity levels.
+
+- [x] Add event categories (Gameplay/UI/System).
+
+- [x] Unit tests: publish/subscribe, sync vs async.
     
 
 ### Phase 2 – Job System
