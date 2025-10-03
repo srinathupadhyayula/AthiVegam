@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include "Jobs/Scheduler.hpp"
 #include "Jobs/Types.hpp"
+#include "Core/Platform/Platform.hpp"
 #include "Core/Platform/Time.hpp"
 #include <atomic>
 #include <thread>
