@@ -46,15 +46,14 @@ void Scheduler::Initialize()
         worker->shouldExit = false;
 
         // Create thread
-        worker->thread = Platform::CreateThread(
+        worker->thread = Threading::CreateThread(
             [this, workerId = worker->workerId]() {
+                // Set thread name for debugging
+                Threading::SetCurrentThreadName(("Worker_" + std::to_string(workerId)).c_str());
                 WorkerMain(workerId);
             },
             ThreadPriority::Normal
         );
-
-        // Set thread name for debugging
-        Platform::SetThreadName(worker->thread, ("Worker_" + std::to_string(i)).c_str());
 
         _workers.push_back(std::move(worker));
     }
@@ -87,7 +86,7 @@ void Scheduler::Shutdown()
     {
         if (worker->thread)
         {
-            Platform::JoinThread(worker->thread);
+            Threading::JoinThread(worker->thread);
         }
     }
 
@@ -168,7 +167,7 @@ void Scheduler::Wait(JobHandle handle)
         }
 
         // Yield to avoid busy-waiting
-        Platform::YieldThread();
+        Threading::YieldThread();
     }
 }
 
@@ -210,7 +209,7 @@ void Scheduler::WorkerMain(u32 workerId)
         else
         {
             // No work available, yield
-            Platform::YieldThread();
+            Threading::YieldThread();
         }
     }
 

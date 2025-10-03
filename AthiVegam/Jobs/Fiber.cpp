@@ -6,8 +6,7 @@
 #include "Core/Logger.hpp"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
+// WIN32_LEAN_AND_MEAN and NOMINMAX are already defined by Core CMakeLists.txt
 #include <Windows.h>
 #endif
 
@@ -82,7 +81,9 @@ FiberHandle Fiber::ConvertThreadToFiber()
 
 void Fiber::ConvertFiberToThread()
 {
-    if (!ConvertFiberToThread())
+    // Note: Windows ConvertFiberToThread() returns BOOL, not void
+    BOOL result = ::ConvertFiberToThread();
+    if (!result)
     {
         LOG_ERROR("Failed to convert fiber to thread: {}", GetLastError());
     }

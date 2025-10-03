@@ -13,6 +13,13 @@
 #include <unordered_map>
 #include <memory>
 
+// Import Threading types into Jobs namespace for convenience
+namespace Engine::Jobs
+{
+    using Threading::ThreadHandle;
+    using Threading::ThreadPriority;
+}
+
 namespace Engine::Jobs
 {
 
@@ -195,7 +202,7 @@ void Scheduler::ParallelFor(usize begin, usize end, usize grain, Fn fn)
     while (completedChunks.load(std::memory_order_acquire) < numChunks)
     {
         // Yield to avoid busy-waiting
-        Platform::YieldThread();
+        Threading::YieldThread();
     }
 }
 
