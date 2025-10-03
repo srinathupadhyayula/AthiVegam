@@ -7,7 +7,7 @@ include(CompilerWarnings)
 add_subdirectory(Core)
 
 # Future modules (uncomment as implemented)
-# add_subdirectory(Jobs)
+add_subdirectory(Jobs)
 add_subdirectory(Comm)
 # add_subdirectory(ECS)
 # add_subdirectory(Rendering)
