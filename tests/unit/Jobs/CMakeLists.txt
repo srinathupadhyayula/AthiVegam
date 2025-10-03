@@ -3,6 +3,7 @@
 # Collect test files
 set(JOBS_TEST_SOURCES
     TestScheduler.cpp
+    TestWorkStealing.cpp
 )
 
 # Create test executable
