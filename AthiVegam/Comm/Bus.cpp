@@ -69,16 +69,28 @@ std::expected<ChannelId, BusError> Bus::RegisterChannel(const ChannelDesc& desc)
         Logger::Error("[Comm] Cannot register channel with empty topic");
         return std::unexpected(BusError::InvalidTopic);
     }
-    
-    ChannelId id = HashTopic(desc.topic);
-    
-    // Check if channel already exists
-    if (_channels.contains(id))
+
+    // Check if topic already registered (prevents duplicate registration)
+    if (auto it = _topicToId.find(desc.topic); it != _topicToId.end())
     {
         Logger::Warn("[Comm] Channel already exists: topic='{}'", desc.topic);
         return std::unexpected(BusError::ChannelAlreadyExists);
     }
-    
+
+    ChannelId id = HashTopic(desc.topic);
+
+    // Check for hash collision: same ID but different topic
+    if (auto it = _channels.find(id); it != _channels.end())
+    {
+        // Verify the existing channel has the same topic
+        if (it->second && it->second->GetTopic() != desc.topic)
+        {
+            Logger::Error("[Comm] Hash collision detected for topics '{}' and '{}'",
+                it->second->GetTopic(), desc.topic);
+            return std::unexpected(BusError::ChannelAlreadyExists);
+        }
+    }
+
     // Create channel
     auto channel = std::make_unique<Channel>(id, desc);
     _channels[id] = std::move(channel);

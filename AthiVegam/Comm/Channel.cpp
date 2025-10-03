@@ -42,16 +42,19 @@ void Channel::Publish(const Payload& payload)
             break;
             
         case DeliveryMode::Buffered:
+        {
             // Queue message for frame-scoped drainage
+            std::lock_guard<std::mutex> lock(_queueMutex);
             if (_desc.maxQueueSize > 0 && _messageQueue.size() >= _desc.maxQueueSize)
             {
-                Logger::Warn("[Comm] Message queue full for topic '{}', dropping message", 
+                Logger::Warn("[Comm] Message queue full for topic '{}', dropping message",
                     _desc.topic);
                 return;
             }
-            
+
             _messageQueue.push_back(BufferedMessage{payload});
             break;
+        }
     }
 }
 
@@ -97,23 +100,29 @@ void Channel::Drain()
         Logger::Warn("[Comm] Drain() called on non-buffered channel '{}'", _desc.topic);
         return;
     }
-    
-    if (_messageQueue.empty())
+
+    // Copy messages to process (prevents holding lock during callback invocation)
+    std::vector<BufferedMessage> messagesToProcess;
     {
-        return;
+        std::lock_guard<std::mutex> lock(_queueMutex);
+        if (_messageQueue.empty())
+        {
+            return;
+        }
+
+        Logger::Trace("[Comm] Draining {} messages from topic '{}'",
+            _messageQueue.size(), _desc.topic);
+
+        messagesToProcess.swap(_messageQueue);
     }
-    
-    Logger::Trace("[Comm] Draining {} messages from topic '{}'", 
-        _messageQueue.size(), _desc.topic);
-    
-    // Process all queued messages
-    for (const auto& msg : _messageQueue)
+
+    // Process all queued messages (without holding lock)
+    for (const auto& msg : messagesToProcess)
     {
         InvokeSubscribers(msg.payload);
     }
-    
-    // Clear queue and reset arena
-    _messageQueue.clear();
+
+    // Reset arena after processing
     if (_frameArena)
     {
         _frameArena->Reset();

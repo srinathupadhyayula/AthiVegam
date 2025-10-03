@@ -108,7 +108,11 @@ public:
     
     /// @brief Get subscriber count
     /// @return Number of active subscribers
-    usize GetSubscriberCount() const { return _subscribers.size(); }
+    usize GetSubscriberCount() const
+    {
+        std::lock_guard<std::mutex> lock(_subscribersMutex);
+        return _subscribers.size();
+    }
 
 private:
     /// @brief Subscriber entry
@@ -136,6 +140,7 @@ private:
 
     // Buffered mode state
     std::vector<BufferedMessage> _messageQueue;
+    mutable std::mutex _queueMutex;  // Protects _messageQueue
     std::unique_ptr<Memory::FrameArena> _frameArena;  // For buffered message allocation
 };
 
