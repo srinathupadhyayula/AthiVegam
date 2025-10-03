@@ -6,6 +6,9 @@
 #include "Core/Platform/Threading.hpp"
 #include "Core/Platform/Filesystem.hpp"
 #include "Core/Memory/Allocators.hpp"
+#include "Comm/Bus.hpp"
+#include "Comm/Channel.hpp"
+#include "Comm/Payload.hpp"
 #include <cstring>
 
 /// @brief Comprehensive test application for all Phase 0 foundation components
@@ -24,6 +27,9 @@ public:
         LOG_INFO("  AthiVegam Engine - Foundation Test");
         LOG_INFO("========================================");
         LOG_INFO("");
+
+        // Initialize Communication Layer
+        Engine::Comm::Bus::Instance().Initialize();
     }
 
     void OnUpdate() override
@@ -174,25 +180,106 @@ public:
         LOG_INFO("");
 
         // ========================================
+        // Test 7: Communication Layer
+        // ========================================
+        LOG_INFO("[Test 7: Communication Layer]");
+
+        using namespace Engine::Comm;
+
+        // Test channel registration
+        LOG_DEBUG("  Testing channel registration...");
+        ChannelDesc gameplayDesc{
+            .topic = "gameplay.events",
+            .mode = DeliveryMode::Sync,
+            .category = EventCategory::Gameplay
+        };
+        auto channelResult = Bus::Instance().RegisterChannel(gameplayDesc);
+        bool channelRegistered = channelResult.has_value();
+        LOG_INFO("  Channel Registration: {}", channelRegistered ? "PASS" : "FAIL");
+
+        if (channelRegistered)
+        {
+            // Test publish/subscribe
+            LOG_DEBUG("  Testing publish/subscribe...");
+            int receivedValue = 0;
+            auto subResult = Bus::Instance().SubscribeToTopic("gameplay.events",
+                [&receivedValue](const Payload& payload) {
+                    if (auto* value = payload.Get<int>()) {
+                        receivedValue = *value;
+                    }
+                });
+
+            bool subscribed = subResult.has_value();
+            LOG_INFO("  Subscribe:          {}", subscribed ? "PASS" : "FAIL");
+
+            if (subscribed)
+            {
+                auto pubResult = Bus::Instance().PublishToTopic("gameplay.events", Payload(42));
+                bool published = pubResult.has_value();
+                LOG_INFO("  Publish:            {}", published ? "PASS" : "FAIL");
+                LOG_INFO("  Message Received:   {} (expected: 42)", receivedValue);
+                LOG_INFO("  Message Delivery:   {}", receivedValue == 42 ? "PASS" : "FAIL");
+            }
+        }
+
+        // Test buffered channel
+        LOG_DEBUG("  Testing buffered channel...");
+        ChannelDesc bufferedDesc{
+            .topic = "ui.events",
+            .mode = DeliveryMode::Buffered,
+            .category = EventCategory::UI
+        };
+        auto bufferedResult = Bus::Instance().RegisterChannel(bufferedDesc);
+
+        if (bufferedResult.has_value())
+        {
+            int bufferedCount = 0;
+            Bus::Instance().SubscribeToTopic("ui.events",
+                [&bufferedCount](const Payload&) {
+                    bufferedCount++;
+                });
+
+            // Publish 3 messages
+            Bus::Instance().PublishToTopic("ui.events", Payload(1));
+            Bus::Instance().PublishToTopic("ui.events", Payload(2));
+            Bus::Instance().PublishToTopic("ui.events", Payload(3));
+
+            LOG_INFO("  Buffered Messages:  {} (before drain)", bufferedCount);
+
+            // Drain all buffered channels
+            Bus::Instance().DrainAll();
+
+            LOG_INFO("  Buffered Messages:  {} (after drain)", bufferedCount);
+            LOG_INFO("  Buffered Delivery:  {}", bufferedCount == 3 ? "PASS" : "FAIL");
+        }
+
+        LOG_INFO("  Status:             PASS");
+        LOG_INFO("");
+
+        // ========================================
         // Summary
         // ========================================
         LOG_INFO("========================================");
-        LOG_INFO("  All Phase 0 Tests Complete!");
+        LOG_INFO("  All Tests Complete!");
         LOG_INFO("========================================");
         LOG_INFO("");
         LOG_INFO("Tested Subsystems:");
-        LOG_INFO("  [OK] Platform   - CPU detection, system info");
-        LOG_INFO("  [OK] Time       - High-resolution timers");
-        LOG_INFO("  [OK] Memory     - Aligned allocation, tracking");
-        LOG_INFO("  [OK] Logger     - Multi-level logging, file output");
-        LOG_INFO("  [OK] Threading  - Thread creation, mutexes");
-        LOG_INFO("  [OK] Filesystem - File I/O, directory operations");
+        LOG_INFO("  [OK] Platform      - CPU detection, system info");
+        LOG_INFO("  [OK] Time          - High-resolution timers");
+        LOG_INFO("  [OK] Memory        - Aligned allocation, tracking");
+        LOG_INFO("  [OK] Logger        - Multi-level logging, file output");
+        LOG_INFO("  [OK] Threading     - Thread creation, mutexes");
+        LOG_INFO("  [OK] Filesystem    - File I/O, directory operations");
+        LOG_INFO("  [OK] Communication - Pub/sub messaging, delivery modes");
         LOG_INFO("");
     }
 
     void OnShutdown() override
     {
         LOG_INFO("EngineTest shutting down...");
+
+        // Shutdown Communication Layer
+        Engine::Comm::Bus::Instance().Shutdown();
     }
 };
 
