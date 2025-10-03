@@ -8,6 +8,7 @@
 #include <functional>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 // Forward declaration
 namespace Engine::Memory {
@@ -131,7 +132,8 @@ private:
     ChannelDesc _desc;
     std::vector<Subscriber> _subscribers;
     SubscriberId _nextSubscriberId = 1;
-    
+    mutable std::mutex _subscribersMutex;  // Protects _subscribers and _nextSubscriberId
+
     // Buffered mode state
     std::vector<BufferedMessage> _messageQueue;
     std::unique_ptr<Memory::FrameArena> _frameArena;  // For buffered message allocation

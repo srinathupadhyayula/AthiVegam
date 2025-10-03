@@ -59,31 +59,33 @@ SubscriberId Channel::Subscribe(SubscriberCallback callback)
 {
     if (!callback)
     {
-        Logger::Error("[Comm] Attempted to subscribe with null callback to topic '{}'", 
+        Logger::Error("[Comm] Attempted to subscribe with null callback to topic '{}'",
             _desc.topic);
         return 0;
     }
-    
+
+    std::lock_guard<std::mutex> lock(_subscribersMutex);
     SubscriberId id = _nextSubscriberId++;
     _subscribers.push_back(Subscriber{id, std::move(callback)});
-    
+
     Logger::Debug("[Comm] Subscriber {} added to topic '{}'", id, _desc.topic);
-    
+
     return id;
 }
 
 bool Channel::Unsubscribe(SubscriberId id)
 {
+    std::lock_guard<std::mutex> lock(_subscribersMutex);
     auto it = std::find_if(_subscribers.begin(), _subscribers.end(),
         [id](const Subscriber& sub) { return sub.id == id; });
-    
+
     if (it != _subscribers.end())
     {
         _subscribers.erase(it);
         Logger::Debug("[Comm] Subscriber {} removed from topic '{}'", id, _desc.topic);
         return true;
     }
-    
+
     Logger::Warn("[Comm] Subscriber {} not found in topic '{}'", id, _desc.topic);
     return false;
 }
@@ -120,13 +122,20 @@ void Channel::Drain()
 
 void Channel::InvokeSubscribers(const Payload& payload)
 {
-    if (_subscribers.empty())
+    // Copy subscribers to prevent iterator invalidation if a callback
+    // modifies the subscriber list (subscribe/unsubscribe)
+    std::vector<Subscriber> subscribersCopy;
     {
-        return;
+        std::lock_guard<std::mutex> lock(_subscribersMutex);
+        if (_subscribers.empty())
+        {
+            return;
+        }
+        subscribersCopy = _subscribers;
     }
-    
-    // Invoke all subscribers
-    for (const auto& subscriber : _subscribers)
+
+    // Invoke all subscribers from the copied list (without holding the lock)
+    for (const auto& subscriber : subscribersCopy)
     {
         try
         {
@@ -134,12 +143,12 @@ void Channel::InvokeSubscribers(const Payload& payload)
         }
         catch (const std::exception& e)
         {
-            Logger::Error("[Comm] Exception in subscriber {} for topic '{}': {}", 
+            Logger::Error("[Comm] Exception in subscriber {} for topic '{}': {}",
                 subscriber.id, _desc.topic, e.what());
         }
         catch (...)
         {
-            Logger::Error("[Comm] Unknown exception in subscriber {} for topic '{}'", 
+            Logger::Error("[Comm] Unknown exception in subscriber {} for topic '{}'",
                 subscriber.id, _desc.topic);
         }
     }

@@ -43,18 +43,27 @@ void Bus::Shutdown()
     {
         return;
     }
-    
+
     Logger::Info("[Comm] Shutting down message bus ({} channels)", _channels.size());
-    
+
+    // Prevent further operations during teardown
+    _initialized = false;
+
     _channels.clear();
     _topicToId.clear();
-    _initialized = false;
-    
+
+    // Final message after teardown (does not depend on channels)
     Logger::Info("[Comm] Message bus shutdown complete");
 }
 
 std::expected<ChannelId, BusError> Bus::RegisterChannel(const ChannelDesc& desc)
 {
+    if (!_initialized)
+    {
+        Logger::Error("[Comm] Cannot register channel: bus not initialized");
+        return std::unexpected(BusError::ChannelNotFound);
+    }
+
     if (desc.topic.empty())
     {
         Logger::Error("[Comm] Cannot register channel with empty topic");
@@ -82,6 +91,11 @@ std::expected<ChannelId, BusError> Bus::RegisterChannel(const ChannelDesc& desc)
 
 Channel* Bus::GetChannel(ChannelId id)
 {
+    if (!_initialized)
+    {
+        return nullptr;
+    }
+
     auto it = _channels.find(id);
     if (it != _channels.end())
     {
@@ -92,6 +106,11 @@ Channel* Bus::GetChannel(ChannelId id)
 
 Channel* Bus::GetChannelByTopic(std::string_view topic)
 {
+    if (!_initialized)
+    {
+        return nullptr;
+    }
+
     auto it = _topicToId.find(std::string(topic));
     if (it != _topicToId.end())
     {
@@ -154,6 +173,11 @@ std::expected<SubscriberId, BusError> Bus::SubscribeToTopic(std::string_view top
 
 void Bus::DrainAll()
 {
+    if (!_initialized)
+    {
+        return;
+    }
+
     for (auto& [id, channel] : _channels)
     {
         if (channel->GetMode() == DeliveryMode::Buffered)
