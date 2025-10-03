@@ -13,7 +13,7 @@ Channel::Channel(ChannelId id, const ChannelDesc& desc)
     if (_desc.mode == DeliveryMode::Buffered)
     {
         // Allocate 64KB arena for buffered messages
-        _frameArena = std::make_unique<FrameArena>(65536);
+        _frameArena = std::make_unique<Memory::FrameArena>(65536);
     }
     
     Logger::Debug("[Comm] Channel created: topic='{}', mode={}", 

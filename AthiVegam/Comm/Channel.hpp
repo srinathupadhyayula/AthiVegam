@@ -10,7 +10,7 @@
 #include <memory>
 
 // Forward declaration
-namespace Engine {
+namespace Engine::Memory {
     class FrameArena;
 }
 
@@ -134,7 +134,7 @@ private:
     
     // Buffered mode state
     std::vector<BufferedMessage> _messageQueue;
-    std::unique_ptr<FrameArena> _frameArena;  // For buffered message allocation
+    std::unique_ptr<Memory::FrameArena> _frameArena;  // For buffered message allocation
 };
 
 } // namespace Engine::Comm
