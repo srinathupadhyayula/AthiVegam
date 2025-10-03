@@ -1,6 +1,7 @@
 #include "Comm/Channel.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Memory/FrameArena.hpp"
+#include "Jobs/Scheduler.hpp"
 #include <algorithm>
 
 namespace Engine::Comm {
@@ -35,11 +36,27 @@ void Channel::Publish(const Payload& payload)
             break;
             
         case DeliveryMode::Async:
-            // TODO: Phase 2 - Implement job-backed async delivery
-            // For now, deliver synchronously
-            Logger::Trace("[Comm] Async mode stubbed as sync for topic '{}'", _desc.topic);
-            InvokeSubscribers(payload);
+        {
+            // Job-backed async delivery
+            if (!Jobs::Scheduler::Instance().IsInitialized())
+            {
+                Logger::Warn("[Comm] Job System not initialized, falling back to sync delivery for topic '{}'", _desc.topic);
+                InvokeSubscribers(payload);
+                break;
+            }
+
+            // Capture payload and subscribers for async execution
+            // Note: We copy the payload to ensure it remains valid when the job executes
+            Jobs::JobDesc jobDesc{
+                .name = "AsyncChannelPublish_" + _desc.topic,
+                .priority = Jobs::JobPriority::Normal
+            };
+
+            Jobs::Scheduler::Instance().Submit(jobDesc, [this, payload]() {
+                InvokeSubscribers(payload);
+            });
             break;
+        }
             
         case DeliveryMode::Buffered:
         {

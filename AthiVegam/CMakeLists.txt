@@ -3,11 +3,13 @@
 # Include compiler warnings helper
 include(CompilerWarnings)
 
-# Core module (Foundation)
+# Core module (Foundation - low-level utilities)
 add_subdirectory(Core)
 
-# Future modules (uncomment as implemented)
+# Job System (depends on Core)
 add_subdirectory(Jobs)
+
+# Communication Layer (depends on Core and Jobs)
 add_subdirectory(Comm)
 # add_subdirectory(ECS)
 # add_subdirectory(Rendering)

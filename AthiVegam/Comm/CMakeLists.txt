@@ -28,6 +28,7 @@ target_include_directories(AthiVegam_Comm
 target_link_libraries(AthiVegam_Comm
     PUBLIC
         AthiVegam_Core
+        AthiVegam_Jobs
     PRIVATE
         spdlog::spdlog
 )

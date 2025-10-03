@@ -111,6 +111,10 @@ bool Application::Initialize()
     m_initialized = true;
 
     // Call user initialization hook
+    // NOTE: Users should initialize Jobs and Comm systems in OnInitialize()
+    // Example:
+    //   Jobs::Scheduler::Instance().Initialize();
+    //   Comm::Bus::Instance().Initialize();
     LOG_INFO("[Application] Calling OnInitialize()...");
     OnInitialize();
     LOG_INFO("[Application] OnInitialize() complete");
@@ -158,6 +162,12 @@ void Application::Shutdown()
     OnShutdown();
     LOG_INFO("[Application] OnShutdown() complete");
     LOG_INFO("");
+
+    // Call user shutdown hook
+    // NOTE: Users should shutdown Jobs and Comm systems in OnShutdown()
+    // Example:
+    //   Comm::Bus::Instance().Shutdown();
+    //   Jobs::Scheduler::Instance().Shutdown();
 
     // Shutdown subsystems in reverse order
     LOG_INFO("========================================");
