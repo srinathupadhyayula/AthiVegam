@@ -75,6 +75,7 @@ Phase 1 implements a type-safe, multi-mode message bus for inter-system communic
 
 ### Unit Tests
 - **File:** `tests/unit/Comm/TestCommLayer.cpp`
+- **Test Cases:** 27 comprehensive tests
 - **Coverage:**
   - Payload type safety (Get<T>, Is<T>, type mismatches)
   - Channel publish/subscribe (single/multiple subscribers)
@@ -83,7 +84,10 @@ Phase 1 implements a type-safe, multi-mode message bus for inter-system communic
   - Async delivery mode (stubbed as sync)
   - Subscription management (subscribe/unsubscribe)
   - Bus operations (register/publish/drain)
-  - Thread safety (concurrent publish/subscribe)
+  - Thread safety (concurrent publish/subscribe/unsubscribe)
+  - Callback re-entrancy (iterator invalidation protection)
+  - Initialization/shutdown state management
+  - Error conditions (empty topic, null callback)
 
 ### Integration Tests
 - **File:** `examples/00_EngineTest/main.cpp`
@@ -141,9 +145,9 @@ Phase 1 implements a type-safe, multi-mode message bus for inter-system communic
 
 ## Code Statistics
 
-- **Total Lines:** ~1,310 lines (implementation + tests)
+- **Total Lines:** ~1,550 lines (implementation + tests)
 - **Source Files:** 7 new files
-- **Test Cases:** 20+ comprehensive unit tests
+- **Test Cases:** 27 comprehensive unit tests
 - **Documentation:** 100% Doxygen coverage on public APIs
 
 ---
