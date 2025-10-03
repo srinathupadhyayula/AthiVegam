@@ -4,6 +4,7 @@
 set(JOBS_TEST_SOURCES
     TestScheduler.cpp
     TestWorkStealing.cpp
+    TestParallelFor.cpp
 )
 
 # Create test executable
