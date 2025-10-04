@@ -2,6 +2,7 @@
 #include "Query.hpp"
 #include "Jobs/Scheduler.hpp"
 #include <atomic>
+#include <memory>
 
 namespace Engine::ECS {
 
@@ -41,6 +42,10 @@ public:
         const size_t totalChunks = chunkIndices.size();
         std::atomic<size_t> completedChunks{0};
 
+        // Store function in a shared_ptr to safely share across jobs
+        // This avoids issues with capturing forwarding references
+        auto sharedFunc = std::make_shared<std::decay_t<Func>>(std::forward<Func>(func));
+
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
@@ -53,8 +58,8 @@ public:
             Archetype* archetype = archetypes[archetypeIdx];
 
             // Capture chunk processing in a job
-            Jobs::Scheduler::Instance().Submit(desc, [archetype, chunkIdx, func, &completedChunks]() {
-                ProcessChunkDirect(archetype, chunkIdx, func);
+            Jobs::Scheduler::Instance().Submit(desc, [archetype, chunkIdx, sharedFunc, &completedChunks]() {
+                ProcessChunkDirect(archetype, chunkIdx, *sharedFunc);
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
@@ -94,6 +99,9 @@ public:
         const size_t totalChunks = chunkIndices.size();
         std::atomic<size_t> completedChunks{0};
 
+        // Store function in a shared_ptr to safely share across jobs
+        auto sharedFunc = std::make_shared<std::decay_t<Func>>(std::forward<Func>(func));
+
         for (size_t i = 0; i < chunkIndices.size(); ++i)
         {
             const auto& [archetypeIdx, chunkIdx] = chunkIndices[i];
@@ -106,8 +114,8 @@ public:
             // Capture archetype pointer directly
             Archetype* archetype = archetypes[archetypeIdx];
 
-            Jobs::Scheduler::Instance().Submit(desc, [i, archetype, chunkIdx, func, &completedChunks]() {
-                ProcessChunkWithIndex(i, archetype, chunkIdx, func);
+            Jobs::Scheduler::Instance().Submit(desc, [i, archetype, chunkIdx, sharedFunc, &completedChunks]() {
+                ProcessChunkWithIndex(i, archetype, chunkIdx, *sharedFunc);
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
