@@ -119,7 +119,8 @@ public:
     }
     
 private:
-    // Process chunk using archetype pointer directly (for Execute)
+    // Process chunk entity-by-entity (for Execute)
+    // Calls func(component1, component2, ...) for each entity
     template<typename Func>
     static void ProcessChunkDirect(Archetype* archetype, size_t chunkIdx, Func func)
     {
@@ -149,20 +150,8 @@ private:
         }
     }
 
-    // Process chunk using archetype index (for ExecuteChunks)
-    template<typename Func>
-    void ProcessChunk(size_t archetypeIdx, size_t chunkIdx, Func func) const
-    {
-        // Get archetype and chunk
-        const auto& archetypes = GetMatchingArchetypes();
-        if (archetypeIdx >= archetypes.size())
-            return;
-
-        Archetype* archetype = archetypes[archetypeIdx];
-        ProcessChunkDirect(archetype, chunkIdx, func);
-    }
-    
-    // Process chunk with index for ExecuteChunks
+    // Process entire chunk at once (for ExecuteChunks)
+    // Calls func(chunkIndex, column1*, column2*, ..., entityCount) once per chunk
     template<typename Func>
     static void ProcessChunkWithIndex(size_t chunkIndex, Archetype* archetype, size_t chunkIdx, Func func)
     {
