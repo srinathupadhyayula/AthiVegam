@@ -25,30 +25,20 @@ add_library(AthiVegam_Jobs STATIC
 # Include directories
 target_include_directories(AthiVegam_Jobs
     PUBLIC
-        ${CMAKE_SOURCE_DIR}
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<INSTALL_INTERFACE:include>
 )
 
 # Link dependencies
 target_link_libraries(AthiVegam_Jobs
     PUBLIC
-        AthiVegam_Core
+        AthiVegam::Core
     PRIVATE
         spdlog::spdlog
 )
 
-# Compiler settings
-if(MSVC)
-    target_compile_options(AthiVegam_Jobs PRIVATE
-        /W4
-        /permissive-
-    )
-else()
-    target_compile_options(AthiVegam_Jobs PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
-endif()
+# Compiler warnings
+set_project_warnings(AthiVegam_Jobs)
 
 # Set target properties
 set_target_properties(AthiVegam_Jobs PROPERTIES

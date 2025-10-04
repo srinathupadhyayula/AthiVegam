@@ -38,25 +38,36 @@ void Scheduler::Initialize()
 
     LOG_INFO("Creating {} worker threads", _workerCount);
 
-    // Create worker threads
+    // Create worker threads in two phases to avoid race condition:
+    // Phase 1: Create all worker structures and add to vector
+    // Phase 2: Start all threads (now safe to access any _workers[i])
+
     _workers.reserve(_workerCount);
+
+    // PHASE 1: Create worker structures (don't start threads yet)
     for (usize i = 0; i < _workerCount; ++i)
     {
         auto worker = std::make_unique<WorkerThread>();
         worker->workerId = static_cast<u32>(i);
         worker->shouldExit = false;
+        worker->thread = nullptr;  // Thread will be created in Phase 2
 
-        // Create thread
-        worker->thread = Threading::CreateThread(
-            [this, workerId = worker->workerId]() {
+        _workers.push_back(std::move(worker));
+    }
+
+    // PHASE 2: Now that all workers are in the vector, start their threads
+    // This prevents race condition where worker threads try to access _workers[i]
+    // before all workers are added to the vector
+    for (usize i = 0; i < _workerCount; ++i)
+    {
+        _workers[i]->thread = Threading::CreateThread(
+            [this, workerId = _workers[i]->workerId]() {
                 // Set thread name for debugging
                 Threading::SetCurrentThreadName(("Worker_" + std::to_string(workerId)).c_str());
                 WorkerMain(workerId);
             },
             ThreadPriority::Normal
         );
-
-        _workers.push_back(std::move(worker));
     }
 
     _initialized = true;
@@ -91,9 +102,21 @@ void Scheduler::Shutdown()
         }
     }
 
-    _workers.clear();
-    _jobs.clear();
+    // Set _initialized to false FIRST to prevent new job submissions during cleanup
+    // This prevents race condition where Submit() could access _workers after it's cleared
     _initialized = false;
+
+    // Now safe to clear everything
+    _workers.clear();
+
+    _jobs.clear();
+    _deferredJobs.clear();
+
+    // Reset state for potential re-initialization
+    _nextJobIndex = 0;
+    _jobVersion = 1;
+    _workerCount = 0;
+    _nextWorker.store(0, std::memory_order_relaxed);
 
     LOG_INFO("Job Scheduler shut down. Stats: {} submitted, {} executed, {} stolen, {} cancelled",
         _stats.jobsSubmitted, _stats.jobsExecuted, _stats.jobsStolen, _stats.jobsCancelled);
@@ -111,7 +134,7 @@ JobHandle Scheduler::Submit(const JobDesc& desc, JobFunction fn)
     auto job = std::make_shared<Job>();
     job->desc = desc;
     job->fn = std::move(fn);
-    
+
     // Generate handle
     {
         std::lock_guard<std::mutex> lock(_jobsMutex);
@@ -134,8 +157,7 @@ JobHandle Scheduler::Submit(const JobDesc& desc, JobFunction fn)
     else
     {
         // Round-robin distribution
-        static std::atomic<u32> nextWorker{0};
-        targetWorker = nextWorker.fetch_add(1, std::memory_order_relaxed) % _workerCount;
+        targetWorker = _nextWorker.fetch_add(1, std::memory_order_relaxed) % _workerCount;
     }
 
     // Enqueue job

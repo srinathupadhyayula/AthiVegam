@@ -152,6 +152,7 @@ private:
     std::mutex _jobsMutex;
     u32 _nextJobIndex = 0;
     u32 _jobVersion = 1;
+    std::atomic<u32> _nextWorker{0};  // Round-robin worker selection
 
     // Hazard tracking
     HazardTracker _hazardTracker;
