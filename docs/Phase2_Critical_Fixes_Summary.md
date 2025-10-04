@@ -1,8 +1,9 @@
 # Phase 2: Critical Fixes Summary
 
-**Date:** 2025-01-04  
-**Status:** ✅ COMPLETE - Ready for Phase 3  
-**Total Fix Time:** 3.5 hours
+**Date:** 2025-10-04
+**Status:** ✅ COMPLETE - Ready for Phase 3
+**Total Fix Time:** 4 hours
+- Breakdown: 3.5 hours (2025-01-04 critical fixes: fiber leak, HazardTracker integration, tests) + 0.25 hours (2025-10-04 ParallelFor functor capture fix)
 
 ---
 
@@ -62,6 +63,24 @@ Following the comprehensive audit in `Phase2_Audit_Report.md`, all critical and 
 
 ---
 
+### ✅ Issue #4: ParallelFor Functor Capture UAF (CRITICAL - Qodo Review)
+
+**Problem:** `ParallelFor` captured the functor by reference inside asynchronously executed lambdas, risking a use-after-free if the caller's scope ended before all chunks completed.
+
+**Solution:** Capture functor by value in submitted job lambdas.
+
+**Commit:** `2f75c71`
+**Time:** 15 minutes
+**Files Modified (only):**
+- `AthiVegam/Jobs/Scheduler.hpp`
+
+**Verification:**
+- All ParallelFor tests continue to pass
+- Added test where functor's owning scope ends immediately after calling `ParallelFor`; no UAF occurs due to value-capture
+- Overall test suite remains passing (63 tests)
+
+---
+
 ### ⚠️ Issue #3: Job Priority Not Enforced (MEDIUM)
 
 **Status:** DEFERRED as technical debt
@@ -101,9 +120,9 @@ Following the comprehensive audit in `Phase2_Audit_Report.md`, all critical and 
 
 ### Test Statistics
 
-- **Before Fixes:** 50+ tests
-- **After Fixes:** 60+ tests
-- **New Tests:** 19 tests
+- **Before Fixes:** 50 tests (4 suites)
+- **After Fixes:** 63 tests (6 suites)
+- **New Tests:** +13 tests net (added: 10 Fiber tests, 7 Scheduler+HazardTracker integration tests; minus: 4 obsolete tests removed)
 - **Pass Rate:** 100%
 
 ---
