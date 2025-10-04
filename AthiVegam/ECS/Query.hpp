@@ -227,6 +227,10 @@ public:
     template<typename Func, size_t... Is>
     void ForEachInChunk(Func&& func, const ComponentTuple& columns, size_t count, std::index_sequence<Is...>) const
     {
+        // Validate all column pointers before iteration
+        if (((std::get<Is>(columns) == nullptr) || ...))
+            return;
+
         for (size_t i = 0; i < count; ++i)
         {
             func(std::get<Is>(columns)[i]...);

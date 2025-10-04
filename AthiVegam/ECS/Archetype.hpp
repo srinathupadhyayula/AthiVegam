@@ -28,6 +28,16 @@ public:
     static constexpr size_t CHUNK_SIZE = 64 * 1024; // 64 KB
     static constexpr size_t ALIGNMENT = 64;         // 64-byte alignment for SIMD
 
+    // Column layout information - single source of truth
+    struct ColumnInfo {
+        ComponentTypeID typeID;
+        size_t offset;
+        size_t size;
+
+        constexpr ColumnInfo(ComponentTypeID id, size_t off, size_t sz) noexcept
+            : typeID(id), offset(off), size(sz) {}
+    };
+
     explicit Chunk(const ComponentSignature& signature);
     ~Chunk() = default;
 
@@ -66,6 +76,12 @@ public:
         return &column[index];
     }
 
+    // Get column layout information (for World access)
+    [[nodiscard]] const std::vector<ColumnInfo>& GetColumns() const noexcept
+    {
+        return _columns;
+    }
+
     // Add entity to chunk (returns index, or -1 if full)
     [[nodiscard]] int32_t AddEntity(uint32_t entityIndex) noexcept;
 
@@ -90,16 +106,6 @@ public:
 
 private:
     void CalculateLayout(const ComponentSignature& signature);
-
-    // Column layout information - single source of truth
-    struct ColumnInfo {
-        ComponentTypeID typeID;
-        size_t offset;
-        size_t size;
-
-        constexpr ColumnInfo(ComponentTypeID id, size_t off, size_t sz) noexcept
-            : typeID(id), offset(off), size(sz) {}
-    };
 
     std::unique_ptr<uint8_t[], AlignedDeleter> _data;          // Aligned chunk memory
     std::vector<ColumnInfo> _columns;                          // Component layout (ordered)

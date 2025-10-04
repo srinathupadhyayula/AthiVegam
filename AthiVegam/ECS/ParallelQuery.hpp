@@ -49,12 +49,21 @@ public:
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
-            if (archetypeIdx >= archetypes.size()) continue;
+            if (archetypeIdx >= archetypes.size()) {
+                // Debug: This should not happen
+                continue;
+            }
             Archetype* archetype = archetypes[archetypeIdx];
-            if (!archetype) continue;
+            if (!archetype) {
+                // Debug: This should not happen
+                continue;
+            }
 
             const auto& chunks = archetype->GetChunks();
-            if (chunkIdx >= chunks.size()) continue;
+            if (chunkIdx >= chunks.size()) {
+                // Debug: This should not happen
+                continue;
+            }
 
             Chunk* chunk = chunks[chunkIdx].get();
             const size_t count = chunk ? chunk->Count() : 0;

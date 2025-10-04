@@ -82,7 +82,7 @@ TEST_F(ECS_ParallelIteration, BasicParallel_SingleComponent)
 TEST_F(ECS_ParallelIteration, BasicParallel_MultipleComponents)
 {
     World world;
-    
+
     // Create entities with Position + Velocity
     const size_t entityCount = 50;
     for (size_t i = 0; i < entityCount; ++i)
@@ -91,17 +91,17 @@ TEST_F(ECS_ParallelIteration, BasicParallel_MultipleComponents)
         [[maybe_unused]] auto r1 = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
         [[maybe_unused]] auto r2 = world.Add(e, Velocity{ 1.0f, 0.0f, 0.0f });
     }
-    
+
     auto query = world.QueryComponents<Position, Velocity>();
     auto parallel = MakeParallel(query);
-    
+
     // Apply velocity to position in parallel
     parallel.Execute([](Position& pos, Velocity& vel) {
         pos.x += vel.dx;
         pos.y += vel.dy;
         pos.z += vel.dz;
     });
-    
+
     // Verify all positions were updated
     auto verifyQuery = world.QueryComponents<Position>();
     size_t count = 0;
