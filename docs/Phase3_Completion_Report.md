@@ -219,7 +219,6 @@ Phase 3 ECS Core implementation is **COMPLETE** and **PRODUCTION-READY**. The im
 - `tests/integration/ECS/TestECS_Integration.cpp`
 - `tests/performance/ECS/TestECS_Performance.cpp`
 - `docs/guides/ecs.md`
-- `docs/ECS_Performance_Characteristics.md`
 - `docs/Phase3_Completion_Report.md`
 
 ### Modified Files (6)
