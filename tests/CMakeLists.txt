@@ -3,9 +3,9 @@
 # Unit tests
 add_subdirectory(unit)
 
-# Integration tests (future)
-# add_subdirectory(integration)
+# Integration tests
+add_subdirectory(integration)
 
-# Performance tests (future)
-# add_subdirectory(performance)
+# Performance tests
+add_subdirectory(performance)
 
