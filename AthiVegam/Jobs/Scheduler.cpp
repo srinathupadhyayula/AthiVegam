@@ -7,6 +7,7 @@
 #include "Core/Logger.hpp"
 #include <algorithm>
 #include <random>
+#include <vector>
 
 namespace Engine::Jobs
 {
@@ -286,6 +287,21 @@ void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
     // Mark as running
     job->status.store(JobStatus::Running, std::memory_order_release);
 
+    // Execute job with resources held
+    ExecuteJobDirect(job);
+
+    // Release resources (always, even if exception occurred inside ExecuteJobDirect)
+    _hazardTracker.ReleaseResources(job->desc.reads, job->desc.writes);
+
+    // Try to execute deferred jobs now that resources are released
+    TryExecuteDeferredJobs();
+}
+
+void Scheduler::ExecuteJobDirect(std::shared_ptr<Job> job)
+{
+    // Mark as running
+    job->status.store(JobStatus::Running, std::memory_order_release);
+
     // Execute job function
     try
     {
@@ -303,9 +319,6 @@ void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
         job->status.store(JobStatus::Completed, std::memory_order_release);
     }
 
-    // Release resources (always, even if exception occurred)
-    _hazardTracker.ReleaseResources(job->desc.reads, job->desc.writes);
-
     // Update stats
     {
         std::lock_guard<std::mutex> lock(_statsMutex);
@@ -314,35 +327,40 @@ void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
 
     // Notify waiters
     NotifyJobComplete(job->handle);
-
-    // Try to execute deferred jobs now that resources are released
-    TryExecuteDeferredJobs();
 }
 
 void Scheduler::TryExecuteDeferredJobs()
 {
-    std::lock_guard<std::mutex> lock(_deferredMutex);
+    // Collect jobs that can execute (without holding the lock during execution)
+    std::vector<std::shared_ptr<Job>> jobsToExecute;
 
-    // Try to execute deferred jobs
-    auto it = _deferredJobs.begin();
-    while (it != _deferredJobs.end())
     {
-        auto& job = *it;
+        std::lock_guard<std::mutex> lock(_deferredMutex);
 
-        // Check if job can now execute
-        if (_hazardTracker.CanExecute(job->desc.reads, job->desc.writes))
+        // Try to execute deferred jobs
+        auto it = _deferredJobs.begin();
+        while (it != _deferredJobs.end())
         {
-            // Remove from deferred queue
-            auto jobToExecute = job;
-            it = _deferredJobs.erase(it);
+            auto& job = *it;
 
-            // Execute the job (recursive call, but resources are now available)
-            ExecuteJob(jobToExecute);
+            // Check if job can now execute
+            if (_hazardTracker.CanExecute(job->desc.reads, job->desc.writes))
+            {
+                // Remove from deferred queue and add to execution list
+                jobsToExecute.push_back(job);
+                it = _deferredJobs.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
-        else
-        {
-            ++it;
-        }
+    }
+
+    // Execute jobs outside the lock to avoid deadlock
+    for (auto& job : jobsToExecute)
+    {
+        ExecuteJob(job);
     }
 }
 

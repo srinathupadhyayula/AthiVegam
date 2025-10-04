@@ -127,10 +127,13 @@ private:
     /// @brief Try to steal a job from another worker
     std::shared_ptr<Job> StealJob(u32 thiefId);
 
-    /// @brief Execute a job
+    /// @brief Execute a job (with hazard checking)
     void ExecuteJob(std::shared_ptr<Job> job);
 
-    /// @brief Try to execute a deferred job
+    /// @brief Execute a job directly (assumes resources already acquired)
+    void ExecuteJobDirect(std::shared_ptr<Job> job);
+
+    /// @brief Try to execute deferred jobs
     void TryExecuteDeferredJobs();
 
     /// @brief Notify waiters that a job completed
