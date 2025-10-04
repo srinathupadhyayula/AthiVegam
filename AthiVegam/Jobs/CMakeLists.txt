@@ -58,3 +58,6 @@ set_target_properties(AthiVegam_Jobs PROPERTIES
     FOLDER "Engine"
 )
 
+# Create alias for consistent naming
+add_library(AthiVegam::Jobs ALIAS AthiVegam_Jobs)
+
