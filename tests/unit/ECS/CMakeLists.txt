@@ -37,3 +37,13 @@ target_link_libraries(TestECS_Query
     PRIVATE
         AthiVegam::ECS
 )
+
+add_unit_test(TestECS_ParallelIteration
+    TestECS_ParallelIteration.cpp
+)
+
+target_link_libraries(TestECS_ParallelIteration
+    PRIVATE
+        AthiVegam::ECS
+        AthiVegam::Jobs
+)

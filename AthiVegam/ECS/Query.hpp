@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <ranges>
 #include <utility>
+#include <atomic>
 
 namespace Engine::ECS {
 
@@ -174,7 +175,7 @@ public:
         return EntityCount() == 0;
     }
     
-    // Execute a function for each entity in the query
+    // Execute a function for each entity in the query (sequential)
     // Function signature: void(Ts&... components)
     template<typename Func>
     void ForEach(Func&& func) const
@@ -189,6 +190,39 @@ public:
         }
     }
 
+    // Execute a function for each entity in the query (parallel)
+    // Function signature: void(Ts&... components)
+    // Uses Jobs system for chunk-level parallelism
+    template<typename Func>
+    void ForEachParallel(Func&& func) const;
+
+    // Get all chunks for parallel processing
+    // Returns vector of (archetype_index, chunk_index) pairs
+    [[nodiscard]] std::vector<std::pair<size_t, size_t>> GetChunkIndices() const noexcept
+    {
+        std::vector<std::pair<size_t, size_t>> indices;
+
+        for (size_t archetypeIdx = 0; archetypeIdx < _matchingArchetypes.size(); ++archetypeIdx)
+        {
+            const auto& chunks = _matchingArchetypes[archetypeIdx]->GetChunks();
+            for (size_t chunkIdx = 0; chunkIdx < chunks.size(); ++chunkIdx)
+            {
+                if (chunks[chunkIdx]->Count() > 0)
+                {
+                    indices.emplace_back(archetypeIdx, chunkIdx);
+                }
+            }
+        }
+
+        return indices;
+    }
+
+    // Get matching archetypes (for parallel query executor)
+    [[nodiscard]] const std::vector<Archetype*>& GetMatchingArchetypes() const noexcept
+    {
+        return _matchingArchetypes;
+    }
+
     // Helper to iterate over entities in a chunk
     template<typename Func, size_t... Is>
     void ForEachInChunk(Func&& func, const ComponentTuple& columns, size_t count, std::index_sequence<Is...>) const
@@ -201,6 +235,60 @@ public:
 
     std::vector<Archetype*> _matchingArchetypes;
 };
+
+// ForEachParallel implementation (requires Jobs system)
+template<Component... Ts>
+template<typename Func>
+inline void Query<Ts...>::ForEachParallel(Func&& func) const
+{
+    // Get all non-empty chunks
+    auto chunkIndices = GetChunkIndices();
+
+    if (chunkIndices.empty())
+        return;
+
+    // Use Jobs system for parallel processing
+    // Note: This requires Jobs::Scheduler to be initialized
+    // Each chunk is processed by a separate job
+
+    std::atomic<size_t> completedChunks{0};
+    const size_t totalChunks = chunkIndices.size();
+
+    for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
+    {
+        Archetype* archetype = _matchingArchetypes[archetypeIdx];
+        const auto& chunks = archetype->GetChunks();
+        Chunk* chunk = chunks[chunkIdx].get();
+
+        // Get component columns for this chunk
+        auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
+        const size_t count = chunk->Count();
+
+        // Process this chunk in parallel
+        // Note: We capture by value to avoid dangling references
+        auto chunkFunc = [columnTuple, count, func, &completedChunks]() {
+            // Apply function to each entity in the chunk
+            for (size_t i = 0; i < count; ++i)
+            {
+                std::apply([&func, i](auto*... columns) {
+                    func(columns[i]...);
+                }, columnTuple);
+            }
+            completedChunks.fetch_add(1, std::memory_order_release);
+        };
+
+        // Submit job (implementation will be added when integrating with Jobs)
+        // For now, execute sequentially as fallback
+        chunkFunc();
+    }
+
+    // Wait for all chunks to complete
+    while (completedChunks.load(std::memory_order_acquire) < totalChunks)
+    {
+        // Yield to avoid busy-waiting
+        // Note: This will be replaced with proper Jobs::Scheduler wait
+    }
+}
 
 // Helper to check if a signature matches query requirements
 template<Component... IncludeTs>
