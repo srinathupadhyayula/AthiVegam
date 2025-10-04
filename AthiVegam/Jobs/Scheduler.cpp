@@ -118,8 +118,8 @@ void Scheduler::Shutdown()
     _workerCount = 0;
     _nextWorker.store(0, std::memory_order_relaxed);
 
-    LOG_INFO("Job Scheduler shut down. Stats: {} submitted, {} executed, {} stolen, {} cancelled",
-        _stats.jobsSubmitted, _stats.jobsExecuted, _stats.jobsStolen, _stats.jobsCancelled);
+    LOG_INFO("Job Scheduler shut down. Stats: {} submitted, {} executed, {} failed, {} stolen, {} cancelled",
+        _stats.jobsSubmitted, _stats.jobsExecuted, _stats.jobsFailed, _stats.jobsStolen, _stats.jobsCancelled);
 }
 
 JobHandle Scheduler::Submit(const JobDesc& desc, JobFunction fn)
@@ -325,6 +325,7 @@ void Scheduler::ExecuteJobDirect(std::shared_ptr<Job> job)
     job->status.store(JobStatus::Running, std::memory_order_release);
 
     // Execute job function
+    bool jobFailed = false;
     try
     {
         job->fn();
@@ -334,17 +335,26 @@ void Scheduler::ExecuteJobDirect(std::shared_ptr<Job> job)
     {
         LOG_ERROR("Job '{}' threw exception: {}", job->desc.name, e.what());
         job->status.store(JobStatus::Completed, std::memory_order_release);
+        jobFailed = true;
     }
     catch (...)
     {
         LOG_ERROR("Job '{}' threw unknown exception", job->desc.name);
         job->status.store(JobStatus::Completed, std::memory_order_release);
+        jobFailed = true;
     }
 
     // Update stats
     {
         std::lock_guard<std::mutex> lock(_statsMutex);
-        _stats.jobsExecuted++;
+        if (jobFailed)
+        {
+            _stats.jobsFailed++;
+        }
+        else
+        {
+            _stats.jobsExecuted++;
+        }
     }
 
     // Notify waiters

@@ -86,7 +86,8 @@ public:
     struct Stats
     {
         u64 jobsSubmitted = 0;
-        u64 jobsExecuted = 0;
+        u64 jobsExecuted = 0;   // Successfully completed jobs
+        u64 jobsFailed = 0;      // Jobs that threw exceptions
         u64 jobsStolen = 0;
         u64 jobsCancelled = 0;
     };
