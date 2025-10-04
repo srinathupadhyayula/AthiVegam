@@ -45,10 +45,15 @@ public:
     [[nodiscard]] T* GetColumn() noexcept
     {
         const auto typeID = GetComponentTypeID<T>();
-        auto it = _columnOffsets.find(typeID);
-        if (it == _columnOffsets.end())
-            return nullptr;
-        return reinterpret_cast<T*>(_data.get() + it->second);
+
+        // Linear search is efficient for small number of components per archetype
+        for (const auto& column : _columns) [[likely]]
+        {
+            if (column.typeID == typeID) [[likely]]
+                return reinterpret_cast<T*>(_data.get() + column.offset);
+        }
+
+        return nullptr;
     }
 
     // Get component for entity at index
@@ -86,9 +91,18 @@ public:
 private:
     void CalculateLayout(const ComponentSignature& signature);
 
+    // Column layout information - single source of truth
+    struct ColumnInfo {
+        ComponentTypeID typeID;
+        size_t offset;
+        size_t size;
+
+        constexpr ColumnInfo(ComponentTypeID id, size_t off, size_t sz) noexcept
+            : typeID(id), offset(off), size(sz) {}
+    };
+
     std::unique_ptr<uint8_t[], AlignedDeleter> _data;          // Aligned chunk memory
-    std::unordered_map<ComponentTypeID, size_t> _columnOffsets; // Type ID → byte offset
-    std::vector<size_t> _componentSizes;                       // Size of each component
+    std::vector<ColumnInfo> _columns;                          // Component layout (ordered)
     std::vector<uint32_t> _entityIndices;                      // Entity index per slot
     uint32_t _count{ 0 };                                      // Current entity count
     uint32_t _capacity{ 0 };                                   // Max entities in chunk
@@ -149,6 +163,10 @@ inline void Chunk::CalculateLayout(const ComponentSignature& signature)
     // Calculate component sizes and total per-entity size
     size_t perEntitySize = sizeof(uint32_t); // Entity index
 
+    // Build column information with explicit ordering
+    _columns.clear();
+    _columns.reserve(typeIDs.size());
+
     if (!typeIDs.empty())
     {
         auto& registry = ComponentRegistry::Instance();
@@ -156,13 +174,15 @@ inline void Chunk::CalculateLayout(const ComponentSignature& signature)
         for (const auto typeID : typeIDs)
         {
             const auto* meta = registry.GetMetadata(typeID);
-            if (!meta)
+            if (!meta) [[unlikely]]
             {
                 // Component not registered - this is a programming error
                 _capacity = 0;
                 return;
             }
-            _componentSizes.push_back(meta->size);
+
+            // Store column info (offset will be calculated below)
+            _columns.emplace_back(typeID, 0, meta->size);
             perEntitySize += meta->size;
         }
     }
@@ -178,11 +198,11 @@ inline void Chunk::CalculateLayout(const ComponentSignature& signature)
     // Align offset to 64 bytes
     offset = (offset + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 
-    // Calculate column offsets (only if there are components)
-    for (size_t i = 0; i < typeIDs.size(); ++i)
+    // Calculate column offsets for each component
+    for (auto& column : _columns)
     {
-        _columnOffsets[typeIDs[i]] = offset;
-        offset += _componentSizes[i] * _capacity;
+        column.offset = offset;
+        offset += column.size * _capacity;
         // Align each column to 64 bytes
         offset = (offset + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
     }
@@ -202,27 +222,25 @@ inline int32_t Chunk::AddEntity(uint32_t entityIndex) noexcept
 
 inline uint32_t Chunk::RemoveEntity(uint32_t index) noexcept
 {
-    if (index >= _count)
+    if (index >= _count) [[unlikely]]
         return 0;
 
     // Swap with last entity (preserves cache locality)
     const uint32_t lastIndex = _count - 1;
     uint32_t swappedEntityIndex = 0;
 
-    if (index != lastIndex)
+    if (index != lastIndex) [[likely]]
     {
         swappedEntityIndex = _entityIndices[lastIndex];
         _entityIndices[index] = swappedEntityIndex;
 
-        // Swap component data for all columns
-        size_t componentIndex = 0;
-        for (const auto& [typeID, offset] : _columnOffsets)
+        // Swap component data for all columns using structured layout
+        for (const auto& column : _columns)
         {
-            const size_t componentSize = _componentSizes[componentIndex++];
-            uint8_t* column = _data.get() + offset;
-            std::memcpy(column + index * componentSize,
-                       column + lastIndex * componentSize,
-                       componentSize);
+            uint8_t* columnData = _data.get() + column.offset;
+            std::memcpy(columnData + index * column.size,
+                       columnData + lastIndex * column.size,
+                       column.size);
         }
     }
 

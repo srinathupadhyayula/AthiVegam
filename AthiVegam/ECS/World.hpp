@@ -345,16 +345,18 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
                 const auto* meta = ComponentRegistry::Instance().GetMetadata(typeID);
                 if (meta && meta->copyConstruct)
                 {
-                    // Get column offsets in both chunks
-                    auto oldColIt = oldChunk->_columnOffsets.find(typeID);
-                    auto newColIt = newChunk->_columnOffsets.find(typeID);
+                    // Find column info in both chunks
+                    const auto* oldColumn = std::ranges::find_if(oldChunk->_columns,
+                        [typeID](const auto& col) { return col.typeID == typeID; });
+                    const auto* newColumn = std::ranges::find_if(newChunk->_columns,
+                        [typeID](const auto& col) { return col.typeID == typeID; });
 
-                    if (oldColIt != oldChunk->_columnOffsets.end() &&
-                        newColIt != newChunk->_columnOffsets.end())
+                    if (oldColumn != oldChunk->_columns.end() &&
+                        newColumn != newChunk->_columns.end())
                     {
                         // Calculate pointers to old and new component data
-                        uint8_t* oldData = oldChunk->_data.get() + oldColIt->second + (oldIndex * meta->size);
-                        uint8_t* newData = newChunk->_data.get() + newColIt->second + (newIndex * meta->size);
+                        uint8_t* oldData = oldChunk->_data.get() + oldColumn->offset + (oldIndex * meta->size);
+                        uint8_t* newData = newChunk->_data.get() + newColumn->offset + (newIndex * meta->size);
 
                         // Copy component data
                         std::memcpy(newData, oldData, meta->size);

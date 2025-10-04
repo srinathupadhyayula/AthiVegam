@@ -49,6 +49,7 @@ public:
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
+            if (archetypeIdx >= archetypes.size()) continue;
             Archetype* archetype = archetypes[archetypeIdx];
             if (!archetype) continue;
 
@@ -121,6 +122,7 @@ public:
         {
             const auto& [archetypeIdx, chunkIdx] = chunkIndices[i];
 
+            if (archetypeIdx >= archetypes.size()) continue;
             Archetype* archetype = archetypes[archetypeIdx];
             if (!archetype) continue;
 
