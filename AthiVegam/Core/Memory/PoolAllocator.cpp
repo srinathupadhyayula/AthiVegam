@@ -127,6 +127,55 @@ void PoolAllocator::Deallocate(void* ptr)
     _allocatedBlocks--;
 }
 
+// Move constructor
+PoolAllocator::PoolAllocator(PoolAllocator&& other) noexcept
+    : _buffer(other._buffer)
+    , _freeList(other._freeList)
+    , _blockSize(other._blockSize)
+    , _blockAlignment(other._blockAlignment)
+    , _blockCount(other._blockCount)
+    , _allocatedBlocks(other._allocatedBlocks)
+{
+    other._buffer = nullptr;
+    other._freeList = nullptr;
+    other._blockSize = 0;
+    other._blockAlignment = 1;
+    other._blockCount = 0;
+    other._allocatedBlocks = 0;
+}
+
+// Move assignment
+PoolAllocator& PoolAllocator::operator=(PoolAllocator&& other) noexcept
+{
+    if (this != &other)
+    {
+        // Release current buffer if owned
+        if (_buffer != nullptr)
+        {
+            if (_allocatedBlocks > 0)
+            {
+                spdlog::warn("PoolAllocator move-assign freeing buffer with {} allocated blocks", _allocatedBlocks);
+            }
+            AlignedFree(_buffer);
+        }
+
+        _buffer = other._buffer;
+        _freeList = other._freeList;
+        _blockSize = other._blockSize;
+        _blockAlignment = other._blockAlignment;
+        _blockCount = other._blockCount;
+        _allocatedBlocks = other._allocatedBlocks;
+
+        other._buffer = nullptr;
+        other._freeList = nullptr;
+        other._blockSize = 0;
+        other._blockAlignment = 1;
+        other._blockCount = 0;
+        other._allocatedBlocks = 0;
+    }
+    return *this;
+}
+
 void PoolAllocator::InitializeFreeList()
 {
     _freeList = nullptr;

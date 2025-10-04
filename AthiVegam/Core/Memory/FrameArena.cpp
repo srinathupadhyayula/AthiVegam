@@ -36,6 +36,37 @@ FrameArena::~FrameArena()
     }
 }
 
+// Move constructor
+FrameArena::FrameArena(FrameArena&& other) noexcept
+    : _buffer(other._buffer)
+    , _capacity(other._capacity)
+    , _offset(other._offset)
+{
+    other._buffer = nullptr;
+    other._capacity = 0;
+    other._offset = 0;
+}
+
+// Move assignment
+FrameArena& FrameArena::operator=(FrameArena&& other) noexcept
+{
+    if (this != &other)
+    {
+        if (_buffer != nullptr)
+        {
+            AlignedFree(_buffer);
+        }
+        _buffer = other._buffer;
+        _capacity = other._capacity;
+        _offset = other._offset;
+
+        other._buffer = nullptr;
+        other._capacity = 0;
+        other._offset = 0;
+    }
+    return *this;
+}
+
 void* FrameArena::Allocate(usize size, usize alignment)
 {
     if (size == 0)

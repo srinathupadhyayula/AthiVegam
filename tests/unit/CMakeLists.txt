@@ -19,12 +19,8 @@ function(add_unit_test test_name)
     )
 endfunction()
 
-# Core module tests (will be added as we implement)
-# add_unit_test(TestFrameArena TestFrameArena.cpp)
-# add_unit_test(TestPoolAllocator TestPoolAllocator.cpp)
-# add_unit_test(TestSlabAllocator TestSlabAllocator.cpp)
-# add_unit_test(TestTime TestTime.cpp)
-# add_unit_test(TestFilesystem TestFilesystem.cpp)
+# Core module tests
+add_subdirectory(Core)
 
 # Placeholder test to ensure build system works
 add_unit_test(TestPlaceholder TestPlaceholder.cpp)

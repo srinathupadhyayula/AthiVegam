@@ -49,21 +49,16 @@ public:
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
-            if (archetypeIdx >= archetypes.size()) {
-                // Debug: This should not happen
+            if (archetypeIdx >= archetypes.size())
                 continue;
-            }
+
             Archetype* archetype = archetypes[archetypeIdx];
-            if (!archetype) {
-                // Debug: This should not happen
+            if (!archetype)
                 continue;
-            }
 
             const auto& chunks = archetype->GetChunks();
-            if (chunkIdx >= chunks.size()) {
-                // Debug: This should not happen
+            if (chunkIdx >= chunks.size())
                 continue;
-            }
 
             Chunk* chunk = chunks[chunkIdx].get();
             const size_t count = chunk ? chunk->Count() : 0;
@@ -71,6 +66,11 @@ public:
 
             // Prepare column pointers now to avoid accessing vectors inside jobs
             auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
+
+            // Validate all column pointers before submitting job
+            // Skip this chunk if any column pointer is null
+            if (((std::get<Ts*>(columnTuple) == nullptr) || ...))
+                continue;
 
             Jobs::JobDesc desc{
                 .name = "ECS_ParallelQuery",
