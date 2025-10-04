@@ -18,6 +18,9 @@ struct AlignedDeleter {
     }
 };
 
+// Forward declaration for friend
+class World;
+
 // Chunk: SoA storage for entities with the same component signature
 // Size: 32-64 KB for cache efficiency; 64-byte aligned for SIMD
 class Chunk {
@@ -33,6 +36,9 @@ public:
     Chunk& operator=(const Chunk&) = delete;
     Chunk(Chunk&&) noexcept = default;
     Chunk& operator=(Chunk&&) noexcept = default;
+
+    // Allow World to access internals for component migration
+    friend class World;
 
     // Get component column pointer for type T
     template<Component T>
@@ -59,7 +65,8 @@ public:
     [[nodiscard]] int32_t AddEntity(uint32_t entityIndex) noexcept;
 
     // Remove entity from chunk at index (swaps with last)
-    void RemoveEntity(uint32_t index) noexcept;
+    // Returns the entity index that was swapped (or 0 if no swap occurred)
+    uint32_t RemoveEntity(uint32_t index) noexcept;
 
     // Current entity count in chunk
     [[nodiscard]] uint32_t Count() const noexcept { return _count; }
@@ -193,16 +200,19 @@ inline int32_t Chunk::AddEntity(uint32_t entityIndex) noexcept
     return static_cast<int32_t>(index);
 }
 
-inline void Chunk::RemoveEntity(uint32_t index) noexcept
+inline uint32_t Chunk::RemoveEntity(uint32_t index) noexcept
 {
     if (index >= _count)
-        return;
+        return 0;
 
     // Swap with last entity (preserves cache locality)
     const uint32_t lastIndex = _count - 1;
+    uint32_t swappedEntityIndex = 0;
+
     if (index != lastIndex)
     {
-        _entityIndices[index] = _entityIndices[lastIndex];
+        swappedEntityIndex = _entityIndices[lastIndex];
+        _entityIndices[index] = swappedEntityIndex;
 
         // Swap component data for all columns
         size_t componentIndex = 0;
@@ -217,6 +227,7 @@ inline void Chunk::RemoveEntity(uint32_t index) noexcept
     }
 
     _count--;
+    return swappedEntityIndex;
 }
 
 inline Chunk* Archetype::GetAvailableChunk()

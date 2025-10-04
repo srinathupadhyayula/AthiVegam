@@ -143,7 +143,14 @@ inline std::expected<void, Error> World::DestroyEntity(Entity e) noexcept
         auto& record = _entityRecords[e.index];
         if (record.chunk)
         {
-            record.chunk->RemoveEntity(record.indexInChunk);
+            uint32_t swappedEntityIndex = record.chunk->RemoveEntity(record.indexInChunk);
+
+            // If an entity was swapped, update its record
+            if (swappedEntityIndex != 0 && swappedEntityIndex < _entityRecords.size())
+            {
+                _entityRecords[swappedEntityIndex].indexInChunk = record.indexInChunk;
+            }
+
             record.archetype = nullptr;
             record.chunk = nullptr;
             record.indexInChunk = 0;
@@ -295,6 +302,10 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
 {
     auto& record = _entityRecords[e.index];
 
+    Chunk* oldChunk = record.chunk;
+    uint32_t oldIndex = record.indexInChunk;
+    Archetype* oldArchetype = record.archetype;
+
     // Get available chunk in new archetype
     Chunk* newChunk = newArchetype->GetAvailableChunk();
     int32_t newIndex = newChunk->AddEntity(e.index);
@@ -306,9 +317,9 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
     }
 
     // Copy component data from old chunk to new chunk (if entity had components)
-    if (record.chunk)
+    if (oldChunk && oldArchetype)
     {
-        const auto& oldSig = record.archetype->GetSignature();
+        const auto& oldSig = oldArchetype->GetSignature();
         const auto& newSig = newArchetype->GetSignature();
 
         // Copy components that exist in both signatures
@@ -318,17 +329,28 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
             {
                 // Component exists in both - copy data
                 const auto* meta = ComponentRegistry::Instance().GetMetadata(typeID);
-                if (meta)
+                if (meta && meta->copyConstruct)
                 {
-                    // Get old and new component pointers
-                    // This is simplified - in production we'd use proper column access
-                    // For now, we rely on the chunk's GetColumn mechanism
+                    // Get column offsets in both chunks
+                    auto oldColIt = oldChunk->_columnOffsets.find(typeID);
+                    auto newColIt = newChunk->_columnOffsets.find(typeID);
+
+                    if (oldColIt != oldChunk->_columnOffsets.end() &&
+                        newColIt != newChunk->_columnOffsets.end())
+                    {
+                        // Calculate pointers to old and new component data
+                        uint8_t* oldData = oldChunk->_data.get() + oldColIt->second + (oldIndex * meta->size);
+                        uint8_t* newData = newChunk->_data.get() + newColIt->second + (newIndex * meta->size);
+
+                        // Copy component data
+                        std::memcpy(newData, oldData, meta->size);
+                    }
                 }
             }
         }
 
-        // Remove from old chunk
-        record.chunk->RemoveEntity(record.indexInChunk);
+        // Remove from old chunk (this will swap with last entity)
+        oldChunk->RemoveEntity(oldIndex);
     }
 
     // Update entity record
