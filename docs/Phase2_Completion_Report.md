@@ -197,24 +197,28 @@ case DeliveryMode::Async:
 
 ### 4. Performance Results
 
-#### **Parallel Speedup**
+> **Note:** The numbers below are **estimated targets** based on typical hardware (8-core CPU, DDR4 RAM).
+> **To verify actual performance on your system**, see [Performance Verification Guide](Phase2_Performance_Verification_Guide.md).
+> Run `scripts/run_performance_benchmarks.bat` to collect real measurements.
+
+#### **Parallel Speedup** (Target)
 - **Sequential time:** ~500ms (1000 jobs, 10K work per job)
 - **Parallel time:** ~80ms (8 worker threads)
 - **Speedup:** ~6.25x on 8-core system
 - **Efficiency:** 78% (6.25/8)
 
-#### **Job Submission Overhead**
+#### **Job Submission Overhead** (Target)
 - **Average:** ~15μs per job (10,000 jobs)
 - **Total time:** ~150ms for 10,000 jobs
 - **Acceptable:** < 100μs per job threshold met
 
-#### **Work-Stealing Efficiency**
+#### **Work-Stealing Efficiency** (Expected)
 - **Jobs executed:** 1000
 - **Jobs stolen:** ~250-400 (varies by workload)
 - **Steal ratio:** 25-40%
 - **Indicates:** Good load balancing
 
-#### **ParallelFor Scaling**
+#### **ParallelFor Scaling** (Expected)
 - **1K elements:** ~0.5ms
 - **10K elements:** ~3ms
 - **100K elements:** ~25ms
