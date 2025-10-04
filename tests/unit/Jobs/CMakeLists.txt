@@ -6,6 +6,8 @@ set(JOBS_TEST_SOURCES
     TestWorkStealing.cpp
     TestParallelFor.cpp
     TestHazardTracker.cpp
+    TestFiber.cpp
+    TestSchedulerHazardIntegration.cpp
 )
 
 # Create test executable
