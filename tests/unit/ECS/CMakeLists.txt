@@ -11,3 +11,21 @@ target_link_libraries(TestECS_EntityLifecycle
         AthiVegam::ECS
 )
 
+add_unit_test(TestECS_ComponentSystem
+    TestECS_ComponentSystem.cpp
+)
+
+target_link_libraries(TestECS_ComponentSystem
+    PRIVATE
+        AthiVegam::ECS
+)
+
+add_unit_test(TestECS_ComponentOperations
+    TestECS_ComponentOperations.cpp
+)
+
+target_link_libraries(TestECS_ComponentOperations
+    PRIVATE
+        AthiVegam::ECS
+)
+
