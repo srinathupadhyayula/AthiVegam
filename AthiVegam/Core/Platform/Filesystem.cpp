@@ -52,7 +52,7 @@ namespace {
     // Helper to get last Windows error as Error
     Error GetLastWindowsError(const std::string& context)
     {
-        DWORD errorCode = GetLastError();
+        DWORD errorCode = ::GetLastError();
         return Error(std::error_code(static_cast<int>(errorCode), std::system_category()), context);
     }
 }
@@ -96,7 +96,7 @@ Result<FileHandle> OpenFile(std::string_view path, OpenMode mode)
     }
 
     std::wstring widePath = Utf8ToWide(path);
-    HANDLE handle = CreateFileW(
+    HANDLE handle = ::CreateFileW(
         widePath.c_str(),
         desiredAccess,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -118,7 +118,7 @@ void CloseFile(FileHandle handle)
 {
     if (handle != nullptr)
     {
-        CloseHandle(reinterpret_cast<HANDLE>(handle));
+        ::CloseHandle(reinterpret_cast<HANDLE>(handle));
     }
 }
 
@@ -178,7 +178,7 @@ Result<u64> GetFileSize(FileHandle handle)
     }
 
     LARGE_INTEGER fileSize;
-    if (!GetFileSizeEx(reinterpret_cast<HANDLE>(handle), &fileSize))
+    if (!::GetFileSizeEx(reinterpret_cast<HANDLE>(handle), &fileSize))
     {
         return Err<u64>(GetLastWindowsError("Failed to get file size"));
     }
@@ -199,7 +199,7 @@ Result<u64> SeekFile(FileHandle handle, i64 offset, bool fromEnd)
     LARGE_INTEGER newPosition;
     DWORD moveMethod = fromEnd ? FILE_END : FILE_BEGIN;
 
-    if (!SetFilePointerEx(reinterpret_cast<HANDLE>(handle), distance, &newPosition, moveMethod))
+    if (!::SetFilePointerEx(reinterpret_cast<HANDLE>(handle), distance, &newPosition, moveMethod))
     {
         return Err<u64>(GetLastWindowsError("Failed to seek file"));
     }
@@ -218,7 +218,7 @@ Result<u64> TellFile(FileHandle handle)
     distance.QuadPart = 0;
 
     LARGE_INTEGER position;
-    if (!SetFilePointerEx(reinterpret_cast<HANDLE>(handle), distance, &position, FILE_CURRENT))
+    if (!::SetFilePointerEx(reinterpret_cast<HANDLE>(handle), distance, &position, FILE_CURRENT))
     {
         return Err<u64>(GetLastWindowsError("Failed to get file position"));
     }
@@ -286,23 +286,23 @@ Result<void> WriteEntireFile(std::string_view path, Span<const byte> data)
 bool FileExists(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    DWORD attributes = GetFileAttributesW(widePath.c_str());
+    DWORD attributes = ::GetFileAttributesW(widePath.c_str());
     return (attributes != INVALID_FILE_ATTRIBUTES) && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
 }
 
 bool DirectoryExists(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    DWORD attributes = GetFileAttributesW(widePath.c_str());
+    DWORD attributes = ::GetFileAttributesW(widePath.c_str());
     return (attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY);
 }
 
 Result<void> CreateDirectory(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    if (!CreateDirectoryW(widePath.c_str(), nullptr))
+    if (!::CreateDirectoryW(widePath.c_str(), nullptr))
     {
-        DWORD error = GetLastError();
+        DWORD error = ::GetLastError();
         if (error != ERROR_ALREADY_EXISTS)
         {
             return std::unexpected(GetLastWindowsError("Failed to create directory"));
@@ -314,7 +314,7 @@ Result<void> CreateDirectory(std::string_view path)
 Result<void> RemoveFile(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    if (!DeleteFileW(widePath.c_str()))
+    if (!::DeleteFileW(widePath.c_str()))
     {
         return std::unexpected(GetLastWindowsError("Failed to delete file"));
     }
@@ -324,7 +324,7 @@ Result<void> RemoveFile(std::string_view path)
 Result<void> DeleteDirectory(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    if (!RemoveDirectoryW(widePath.c_str()))
+    if (!::RemoveDirectoryW(widePath.c_str()))
     {
         return std::unexpected(GetLastWindowsError("Failed to delete directory"));
     }
@@ -333,21 +333,21 @@ Result<void> DeleteDirectory(std::string_view path)
 
 std::string GetCurrentDirectory()
 {
-    DWORD bufferSize = GetCurrentDirectoryW(0, nullptr);
+    DWORD bufferSize = ::GetCurrentDirectoryW(0, nullptr);
     if (bufferSize == 0)
     {
         return std::string();
     }
 
     std::wstring buffer(bufferSize, 0);
-    GetCurrentDirectoryW(bufferSize, buffer.data());
+    ::GetCurrentDirectoryW(bufferSize, buffer.data());
     return WideToUtf8(buffer);
 }
 
 Result<void> SetCurrentDirectory(std::string_view path)
 {
     std::wstring widePath = Utf8ToWide(path);
-    if (!SetCurrentDirectoryW(widePath.c_str()))
+    if (!::SetCurrentDirectoryW(widePath.c_str()))
     {
         return std::unexpected(GetLastWindowsError("Failed to set current directory"));
     }
