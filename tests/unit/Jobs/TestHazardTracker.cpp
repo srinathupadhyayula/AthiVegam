@@ -141,18 +141,19 @@ TEST_F(HazardTrackerTest, MultipleResourcesNoConflict)
 {
     std::vector<ResourceKey> reads1 = {1, 2};
     std::vector<ResourceKey> writes1 = {3};
-    
-    std::vector<ResourceKey> reads2 = {3, 4};
-    std::vector<ResourceKey> writes2 = {5};
-    
+
+    // Fixed: Use completely different resources to avoid conflicts
+    std::vector<ResourceKey> reads2 = {4, 5};
+    std::vector<ResourceKey> writes2 = {6};
+
     // First job
     EXPECT_TRUE(tracker.CanExecute(reads1, writes1));
     tracker.AcquireResources(reads1, writes1);
-    
-    // Second job (different resources, should be allowed)
+
+    // Second job (completely different resources, should be allowed)
     EXPECT_TRUE(tracker.CanExecute(reads2, writes2));
     tracker.AcquireResources(reads2, writes2);
-    
+
     // Release
     tracker.ReleaseResources(reads1, writes1);
     tracker.ReleaseResources(reads2, writes2);
