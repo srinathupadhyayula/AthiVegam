@@ -4,6 +4,8 @@
 
 #include "Jobs/Fiber.hpp"
 #include "Core/Logger.hpp"
+#include <unordered_map>
+#include <mutex>
 
 #ifdef _WIN32
 // WIN32_LEAN_AND_MEAN and NOMINMAX are already defined by Core CMakeLists.txt
@@ -15,11 +17,16 @@ namespace Engine::Jobs
 
 #ifdef _WIN32
 
-// Fiber context for storing function
+// Fiber context for storing function and tracking
 struct FiberContext
 {
     FiberFunction fn;
+    FiberHandle fiberHandle = nullptr; // Store handle for reverse lookup
 };
+
+// Global map to track fiber contexts (protected by mutex)
+static std::unordered_map<FiberHandle, FiberContext*> g_fiberContexts;
+static std::mutex g_fiberContextMutex;
 
 // Fiber entry point
 static void WINAPI FiberProc(LPVOID param)
@@ -33,8 +40,8 @@ static void WINAPI FiberProc(LPVOID param)
 
 FiberHandle Fiber::Create(usize stackSize, FiberFunction fn)
 {
-    auto* context = new FiberContext{std::move(fn)};
-    
+    auto* context = new FiberContext{std::move(fn), nullptr};
+
     LPVOID fiber = CreateFiber(
         stackSize,
         FiberProc,
@@ -48,6 +55,13 @@ FiberHandle Fiber::Create(usize stackSize, FiberFunction fn)
         return nullptr;
     }
 
+    // Track the context for cleanup
+    context->fiberHandle = fiber;
+    {
+        std::lock_guard<std::mutex> lock(g_fiberContextMutex);
+        g_fiberContexts[fiber] = context;
+    }
+
     return fiber;
 }
 
@@ -55,9 +69,23 @@ void Fiber::Delete(FiberHandle fiber)
 {
     if (fiber)
     {
-        // Note: We leak the FiberContext here. In a production implementation,
-        // we would need to track and clean up the context properly.
+        // Retrieve and delete the context
+        FiberContext* context = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(g_fiberContextMutex);
+            auto it = g_fiberContexts.find(fiber);
+            if (it != g_fiberContexts.end())
+            {
+                context = it->second;
+                g_fiberContexts.erase(it);
+            }
+        }
+
+        // Delete the fiber
         DeleteFiber(fiber);
+
+        // Clean up the context
+        delete context;
     }
 }
 
