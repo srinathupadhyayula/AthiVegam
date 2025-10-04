@@ -11,7 +11,9 @@ add_subdirectory(Jobs)
 
 # Communication Layer (depends on Core and Jobs)
 add_subdirectory(Comm)
-# add_subdirectory(ECS)
+
+# ECS (depends on Core and Jobs)
+add_subdirectory(ECS)
 # add_subdirectory(Rendering)
 # add_subdirectory(Physics)
 # add_subdirectory(Scripting)

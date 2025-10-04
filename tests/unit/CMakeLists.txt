@@ -35,3 +35,5 @@ add_subdirectory(Jobs)
 # Comm module tests
 add_subdirectory(Comm)
 
+# ECS module tests
+add_subdirectory(ECS)
