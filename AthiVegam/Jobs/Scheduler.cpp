@@ -269,6 +269,20 @@ std::shared_ptr<Scheduler::Job> Scheduler::StealJob(u32 thiefId)
 
 void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
 {
+    // Check if job can execute (hazard tracking)
+    if (!_hazardTracker.CanExecute(job->desc.reads, job->desc.writes))
+    {
+        // Defer job due to resource conflicts
+        {
+            std::lock_guard<std::mutex> lock(_deferredMutex);
+            _deferredJobs.push_back(job);
+        }
+        return;
+    }
+
+    // Acquire resources
+    _hazardTracker.AcquireResources(job->desc.reads, job->desc.writes);
+
     // Mark as running
     job->status.store(JobStatus::Running, std::memory_order_release);
 
@@ -289,6 +303,9 @@ void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
         job->status.store(JobStatus::Completed, std::memory_order_release);
     }
 
+    // Release resources (always, even if exception occurred)
+    _hazardTracker.ReleaseResources(job->desc.reads, job->desc.writes);
+
     // Update stats
     {
         std::lock_guard<std::mutex> lock(_statsMutex);
@@ -297,6 +314,36 @@ void Scheduler::ExecuteJob(std::shared_ptr<Job> job)
 
     // Notify waiters
     NotifyJobComplete(job->handle);
+
+    // Try to execute deferred jobs now that resources are released
+    TryExecuteDeferredJobs();
+}
+
+void Scheduler::TryExecuteDeferredJobs()
+{
+    std::lock_guard<std::mutex> lock(_deferredMutex);
+
+    // Try to execute deferred jobs
+    auto it = _deferredJobs.begin();
+    while (it != _deferredJobs.end())
+    {
+        auto& job = *it;
+
+        // Check if job can now execute
+        if (_hazardTracker.CanExecute(job->desc.reads, job->desc.writes))
+        {
+            // Remove from deferred queue
+            auto jobToExecute = job;
+            it = _deferredJobs.erase(it);
+
+            // Execute the job (recursive call, but resources are now available)
+            ExecuteJob(jobToExecute);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void Scheduler::NotifyJobComplete(JobHandle handle)

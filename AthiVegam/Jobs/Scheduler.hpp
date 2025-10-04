@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Jobs/Types.hpp"
+#include "Jobs/HazardTracker.hpp"
 #include "Core/Platform/Threading.hpp"
 #include <atomic>
 #include <deque>
@@ -129,6 +130,9 @@ private:
     /// @brief Execute a job
     void ExecuteJob(std::shared_ptr<Job> job);
 
+    /// @brief Try to execute a deferred job
+    void TryExecuteDeferredJobs();
+
     /// @brief Notify waiters that a job completed
     void NotifyJobComplete(JobHandle handle);
 
@@ -139,12 +143,17 @@ private:
     bool _initialized = false;
     usize _workerCount = 0;
     std::vector<std::unique_ptr<WorkerThread>> _workers;
-    
+
     // Job tracking
     std::unordered_map<u64, std::shared_ptr<Job>> _jobs;
     std::mutex _jobsMutex;
     u32 _nextJobIndex = 0;
     u32 _jobVersion = 1;
+
+    // Hazard tracking
+    HazardTracker _hazardTracker;
+    std::deque<std::shared_ptr<Job>> _deferredJobs;
+    std::mutex _deferredMutex;
 
     // Completion notification
     std::condition_variable _completionCV;
