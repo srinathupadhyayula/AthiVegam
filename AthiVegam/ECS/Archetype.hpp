@@ -145,30 +145,30 @@ inline Chunk::Chunk(const ComponentSignature& signature)
 inline void Chunk::CalculateLayout(const ComponentSignature& signature)
 {
     const auto& typeIDs = signature.GetTypeIDs();
-    if (typeIDs.empty())
-    {
-        _capacity = 0;
-        return;
-    }
-
-    auto& registry = ComponentRegistry::Instance();
 
     // Calculate component sizes and total per-entity size
     size_t perEntitySize = sizeof(uint32_t); // Entity index
-    for (const auto typeID : typeIDs)
+
+    if (!typeIDs.empty())
     {
-        const auto* meta = registry.GetMetadata(typeID);
-        if (!meta)
+        auto& registry = ComponentRegistry::Instance();
+
+        for (const auto typeID : typeIDs)
         {
-            // Component not registered - this is a programming error
-            _capacity = 0;
-            return;
+            const auto* meta = registry.GetMetadata(typeID);
+            if (!meta)
+            {
+                // Component not registered - this is a programming error
+                _capacity = 0;
+                return;
+            }
+            _componentSizes.push_back(meta->size);
+            perEntitySize += meta->size;
         }
-        _componentSizes.push_back(meta->size);
-        perEntitySize += meta->size;
     }
 
     // Calculate capacity based on chunk size
+    // Even empty signatures can hold entities (just entity indices)
     _capacity = static_cast<uint32_t>((CHUNK_SIZE - 256) / perEntitySize); // Reserve 256 bytes for metadata
 
     // Layout: [entity indices][component columns...]
@@ -178,7 +178,7 @@ inline void Chunk::CalculateLayout(const ComponentSignature& signature)
     // Align offset to 64 bytes
     offset = (offset + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 
-    // Calculate column offsets
+    // Calculate column offsets (only if there are components)
     for (size_t i = 0; i < typeIDs.size(); ++i)
     {
         _columnOffsets[typeIDs[i]] = offset;
