@@ -251,19 +251,19 @@ TEST_F(ECS_ParallelIteration, SingleEntity)
     World world;
     
     auto e = world.CreateEntity();
-    [[maybe_unused]] auto result = world.Add(e, Position{ 1.0f, 2.0f, 3.0f });
-    
+    [[maybe_unused]] auto addResult = world.Add(e, Position{ 1.0f, 2.0f, 3.0f });
+
     auto query = world.QueryComponents<Position>();
     auto parallel = MakeParallel(query);
-    
+
     std::atomic<int> executeCount{0};
     parallel.Execute([&executeCount](Position& pos) {
         pos.x += 10.0f;
         executeCount.fetch_add(1, std::memory_order_relaxed);
     });
-    
+
     EXPECT_EQ(executeCount.load(), 1);
-    
+
     auto result = world.Get<Position>(e);
     ASSERT_TRUE(result.has_value());
     EXPECT_FLOAT_EQ((*result)->x, 11.0f);
