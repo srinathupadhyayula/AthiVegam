@@ -11,9 +11,9 @@
 
 - Status: Phase 2 is COMPLETE as of 2025-10-04.
 - Acceptance criteria: All Phase 2 acceptance criteria are met and validated by tests.
-- Critical fix (Qodo review): ParallelFor functor capture UAF fixed by capturing functor by value. Commit: `2f75c71`.
-- Test coverage: 63 tests across 6 suites. See `docs/Phase2_Test_Coverage_Report.md`.
-- Deferred improvements: Tracked in Issue #7 (lock-free deque, condition-variable based wait + sentinel shutdown, improved stats, etc.).
+- Critical fix (Qodo review): ParallelFor functor capture UAF fixed by capturing functor by value. Commit: [`2f75c71`](../commit/2f75c71)
+- Test coverage: 63 tests across 6 suites. See [Phase 2 Test Coverage Report](./Phase2_Test_Coverage_Report.md).
+- Deferred improvements: Tracked in [Issue #7](../issues/7) (lock-free deque, condition-variable based wait + sentinel shutdown, improved stats, etc.).
 - Phase 3 readiness: ECS dependencies satisfied (work-stealing scheduler, hazard tracking, ParallelFor, Comm async via Job System).
 
 
@@ -28,7 +28,7 @@ Phase 2 successfully implements a production-ready **work-stealing job system** 
 - ✅ **Hazard Tracking** - Resource conflict detection for safe parallel ECS iteration
 - ✅ **Fiber Support** - Windows Fiber API abstraction for blocking operations
 - ✅ **Comm Layer Integration** - True async message delivery via job system
-- ✅ **Comprehensive Testing** - 63 tests across 6 suites (see Phase2_Test_Coverage_Report.md)
+- ✅ **Comprehensive Testing** - 63 tests across 6 suites (see [Phase 2 Test Coverage Report](./Phase2_Test_Coverage_Report.md))
 - ✅ **Performance Verified** - Parallel speedup demonstrated in benchmarks
 
 ---
