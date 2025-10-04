@@ -228,3 +228,72 @@ TEST(ECS_ComponentOperations, HasComponent)
     EXPECT_FALSE(world.Has<Transform>(e));
 }
 
+TEST(ECS_ComponentOperations, Clear_WithComponents)
+{
+    World world;
+
+    // Create entities with various component combinations
+    auto e1 = world.CreateEntity();
+    auto e2 = world.CreateEntity();
+    auto e3 = world.CreateEntity();
+
+    Transform transform{ 1.0f, 2.0f, 3.0f, 0.0f, 0.0f, 0.0f };
+    RigidBody body{ 10.0f, 0.5f };
+    Tag tag{ 42 };
+
+    ASSERT_TRUE(world.Add(e1, transform).has_value());
+    ASSERT_TRUE(world.Add(e2, transform).has_value());
+    ASSERT_TRUE(world.Add(e2, body).has_value());
+    ASSERT_TRUE(world.Add(e3, tag).has_value());
+
+    EXPECT_EQ(world.AliveCount(), 3u);
+    EXPECT_TRUE(world.Has<Transform>(e1));
+    EXPECT_TRUE(world.Has<Transform>(e2));
+    EXPECT_TRUE(world.Has<RigidBody>(e2));
+    EXPECT_TRUE(world.Has<Tag>(e3));
+
+    // Clear the world
+    world.Clear();
+
+    // Verify all entities and components are gone
+    EXPECT_EQ(world.AliveCount(), 0u);
+    EXPECT_FALSE(world.IsAlive(e1));
+    EXPECT_FALSE(world.IsAlive(e2));
+    EXPECT_FALSE(world.IsAlive(e3));
+
+    // Create new entity - should work fine
+    auto e4 = world.CreateEntity();
+    EXPECT_TRUE(world.IsAlive(e4));
+    EXPECT_EQ(e4.index, 0u);
+    EXPECT_EQ(e4.version, 1u);
+
+    // Add component to new entity - should work fine
+    ASSERT_TRUE(world.Add(e4, transform).has_value());
+    EXPECT_TRUE(world.Has<Transform>(e4));
+}
+
+TEST(ECS_ComponentOperations, GetEntityInfo_WithComponents)
+{
+    World world;
+    auto e = world.CreateEntity();
+
+    // Add components
+    Transform transform{ 1.0f, 2.0f, 3.0f, 0.0f, 0.0f, 0.0f };
+    RigidBody body{ 10.0f, 0.5f };
+    ASSERT_TRUE(world.Add(e, transform).has_value());
+    ASSERT_TRUE(world.Add(e, body).has_value());
+
+    // Get entity info
+    auto result = world.GetEntityInfo(e);
+    ASSERT_TRUE(result.has_value());
+
+    const auto& info = result.value();
+    EXPECT_TRUE(info.isAlive);
+    ASSERT_NE(info.signature, nullptr);
+
+    // Verify signature contains both components
+    EXPECT_TRUE(info.signature->Contains<Transform>());
+    EXPECT_TRUE(info.signature->Contains<RigidBody>());
+    EXPECT_FALSE(info.signature->Contains<Tag>());
+}
+

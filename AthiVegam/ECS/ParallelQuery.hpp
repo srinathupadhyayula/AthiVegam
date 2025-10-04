@@ -1,6 +1,7 @@
 #pragma once
 #include "Query.hpp"
 #include "Jobs/Scheduler.hpp"
+#include "Core/Logger.hpp"
 #include <atomic>
 #include <memory>
 
@@ -25,7 +26,9 @@ public:
         auto chunkIndices = _query.GetChunkIndices();
 
         if (chunkIndices.empty())
+        {
             return;
+        }
 
         // Check if Jobs system is initialized
         if (!Jobs::Scheduler::Instance().IsInitialized())
@@ -40,7 +43,10 @@ public:
 
         // Parallel execution using Jobs system
         const size_t totalChunks = chunkIndices.size();
-        std::atomic<size_t> completedChunks{0};
+
+        // Use shared_ptr to avoid dangling reference when method returns
+        // Jobs execute asynchronously, so stack variables would be invalid
+        auto completedChunks = std::make_shared<std::atomic<size_t>>(0);
 
         // Store function in a shared_ptr to safely share across jobs
         // This avoids issues with capturing forwarding references
@@ -77,20 +83,20 @@ public:
                 .priority = Jobs::JobPriority::Normal
             };
 
-            // Capture only POD/pointers into the job
-            Jobs::Scheduler::Instance().Submit(desc, [columnTuple, count, sharedFunc, &completedChunks]() mutable {
+            // Capture shared_ptr by value to ensure lifetime safety
+            Jobs::Scheduler::Instance().Submit(desc, [columnTuple, count, sharedFunc, completedChunks]() mutable {
                 for (size_t i = 0; i < count; ++i)
                 {
                     std::apply([&](auto*... columns) {
                         (*sharedFunc)(columns[i]...);
                     }, columnTuple);
                 }
-                completedChunks.fetch_add(1, std::memory_order_release);
+                completedChunks->fetch_add(1, std::memory_order_release);
             });
         }
 
         // Wait for all chunks to complete
-        while (completedChunks.load(std::memory_order_acquire) < totalChunks)
+        while (completedChunks->load(std::memory_order_acquire) < totalChunks)
         {
             Engine::Threading::YieldThread();
         }
@@ -122,7 +128,10 @@ public:
         }
 
         const size_t totalChunks = chunkIndices.size();
-        std::atomic<size_t> completedChunks{0};
+
+        // Use shared_ptr to avoid dangling reference when method returns
+        // Jobs execute asynchronously, so stack variables would be invalid
+        auto completedChunks = std::make_shared<std::atomic<size_t>>(0);
 
         // Store function in a shared_ptr to safely share across jobs
         auto sharedFunc = std::make_shared<std::decay_t<Func>>(std::forward<Func>(func));
@@ -149,15 +158,16 @@ public:
                 .priority = Jobs::JobPriority::Normal
             };
 
-            Jobs::Scheduler::Instance().Submit(desc, [i, columnTuple, count, sharedFunc, &completedChunks]() mutable {
+            // Capture shared_ptr by value to ensure lifetime safety
+            Jobs::Scheduler::Instance().Submit(desc, [i, columnTuple, count, sharedFunc, completedChunks]() mutable {
                 std::apply([&](auto*... columns) {
                     (*sharedFunc)(i, columns..., count);
                 }, columnTuple);
-                completedChunks.fetch_add(1, std::memory_order_release);
+                completedChunks->fetch_add(1, std::memory_order_release);
             });
         }
 
-        while (completedChunks.load(std::memory_order_acquire) < totalChunks)
+        while (completedChunks->load(std::memory_order_acquire) < totalChunks)
         {
             Engine::Threading::YieldThread();
         }

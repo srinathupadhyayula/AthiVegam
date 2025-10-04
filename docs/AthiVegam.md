@@ -117,27 +117,45 @@ public static class Jobs {
 
 ## ECS and composition
 
-### Core ECS specification
+> **📖 See [ECS Usage Guide](guides/ecs.md) for detailed documentation and examples.**
 
-- **Entities:** **Label:** 64-bit ID (32-bit index + 32-bit version); free-list reuse.
-- **Archetypes:** **Label:** unique component set key; chunks per archetype.
-- **Chunks:** **Label:** 32–64 KB; SoA columns; 64-byte alignment; header with count/bitsets; debug guards.
-- **Components:** **Label:** POD-first; flags for ctor/dtor; alignment metadata; compile-time registration.
-- **Queries:** **Label:** include/exclude sets; cached archetype lists; chunk iteration; optional shared tags/resources.
+### Core ECS specification (Phase 3 - ✅ IMPLEMENTED)
+
+- **Entities:** **Label:** 64-bit ID (32-bit index + 32-bit version); free-list reuse with version validation.
+- **Archetypes:** **Label:** unique component signature key; automatic chunk allocation per archetype.
+- **Chunks:** **Label:** 64 KB; SoA columns; 64-byte alignment for SIMD; capacity calculated per component layout.
+- **Components:** **Label:** Concept-based validation; automatic registration; type-safe access via `std::expected`.
+- **Queries:** **Label:** include/exclude sets; archetype matching; chunk-level iteration; parallel execution support.
+- **Error Handling:** **Label:** `std::expected` for all operations; comprehensive error codes (InvalidEntity, ComponentNotFound, etc.).
 
 ### System execution
 
-- **Descriptors:** **Label:** declare component access sets; scheduler enforces ordering.
-- **Parallelism:** **Label:** chunk-level parallel_for with work-stealing; affinity hints for hot columns or NUMA.
+- **Parallel Iteration:** **Label:** Integrated with Jobs system; chunk-level work distribution; automatic thread safety.
+- **Query API:** **Label:** Type-safe component access; ForEach and chunk-level iteration; exclude filters.
 - **Example (C++):**
 
-```c++
-auto q = world.query<Transform, Velocity>();
-jobs.parallel_for(0, q.chunk_count(), 1, [&](size_t cidx){
-    auto chunk = q.chunk(cidx);
-    auto t = chunk.view<Transform>();
-    auto v = chunk.view<Velocity>();
-    for (size_t i = 0; i < chunk.count(); ++i) t.pos[i] += v.v[i] * dt;
+```cpp
+// Sequential iteration
+auto query = world.QueryComponents<Transform, Velocity>();
+query.ForEach([](Transform& t, Velocity& v) {
+    t.x += v.dx;
+    t.y += v.dy;
+    t.z += v.dz;
+});
+
+// Parallel iteration (integrated with Jobs system)
+auto parallel = MakeParallel(query);
+parallel.Execute([](Transform& t, Velocity& v) {
+    t.x += v.dx;
+    t.y += v.dy;
+    t.z += v.dz;
+});
+
+// Chunk-level parallel iteration (SIMD-friendly)
+parallel.ExecuteChunks([](Transform* transforms, Velocity* velocities, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        transforms[i].x += velocities[i].dx;
+    }
 });
 ```
 

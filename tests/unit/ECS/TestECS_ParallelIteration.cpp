@@ -3,6 +3,7 @@
 #include "ECS/ParallelQuery.hpp"
 #include "ECS/ComponentRegistry.hpp"
 #include "Jobs/Scheduler.hpp"
+#include "Core/Logger.hpp"
 #include <atomic>
 #include <vector>
 #include <algorithm>
@@ -40,14 +41,24 @@ class ECS_ParallelIteration : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // Initialize Logger first so LOG_INFO calls work
+        Engine::LoggerConfig logConfig;
+        logConfig.consoleLevel = Engine::LogLevel::Info;
+        logConfig.enableFile = false;  // Disable file logging for tests
+        logConfig.enableConsole = true;
+        Engine::Logger::Initialize(logConfig);
+
         // Initialize Jobs system for parallel tests
         Scheduler::Instance().Initialize();
     }
-    
+
     void TearDown() override
     {
         // Shutdown Jobs system
         Scheduler::Instance().Shutdown();
+
+        // Shutdown Logger
+        Engine::Logger::Shutdown();
     }
 };
 
@@ -56,7 +67,7 @@ protected:
 TEST_F(ECS_ParallelIteration, BasicParallel_SingleComponent)
 {
     World world;
-    
+
     // Create entities with Position
     const size_t entityCount = 100;
     for (size_t i = 0; i < entityCount; ++i)
@@ -64,17 +75,17 @@ TEST_F(ECS_ParallelIteration, BasicParallel_SingleComponent)
         auto e = world.CreateEntity();
         [[maybe_unused]] auto result = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
     }
-    
+
     auto query = world.QueryComponents<Position>();
     auto parallel = MakeParallel(query);
-    
+
     // Sum all x values in parallel
     std::atomic<float> sum{0.0f};
     parallel.Execute([&sum](Position& pos) {
         float current = sum.load(std::memory_order_relaxed);
         while (!sum.compare_exchange_weak(current, current + pos.x, std::memory_order_relaxed));
     });
-    
+
     // Expected sum: 0 + 1 + 2 + ... + 99 = 4950
     EXPECT_FLOAT_EQ(sum.load(), 4950.0f);
 }

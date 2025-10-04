@@ -31,6 +31,14 @@ struct WorldOptions {
     uint32_t maxEntities{ 0u };
 };
 
+// Entity metadata for debugging and inspection
+struct EntityInfo {
+    bool isAlive{ false };
+    const ComponentSignature* signature{ nullptr };
+    uint32_t chunkIndex{ 0 };
+    uint32_t indexInChunk{ 0 };
+};
+
 // Simple entity lifecycle manager using a free-list and versioned IDs.
 // - On Destroy: mark as not alive and increment the version counter; push index to free-list.
 // - On Create: reuse index from free-list (if any) with its incremented version; otherwise append a new slot.
@@ -51,9 +59,15 @@ public:
     // Validate an entity; returns InvalidEntity when not alive or out of range.
     std::expected<void, Error> Validate(Entity e) const noexcept;
 
+    // Get entity metadata for debugging and inspection
+    [[nodiscard]] std::expected<EntityInfo, Error> GetEntityInfo(Entity e) const noexcept;
+
     // Counts
     [[nodiscard]] uint32_t AliveCount() const noexcept { return _aliveCount; }
     [[nodiscard]] uint32_t Capacity() const noexcept { return static_cast<uint32_t>(_versions.size()); }
+
+    // World management
+    void Clear() noexcept;
 
     // Component operations
     template<Component T>
@@ -189,6 +203,58 @@ inline std::expected<void, Error> World::Validate(Entity e) const noexcept
     return {};
 }
 
+inline std::expected<EntityInfo, Error> World::GetEntityInfo(Entity e) const noexcept
+{
+    // Validate entity
+    auto validResult = Validate(e);
+    if (!validResult.has_value())
+        return std::unexpected(validResult.error());
+
+    EntityInfo info;
+    info.isAlive = true;
+
+    // Get entity record if it exists
+    if (e.index < _entityRecords.size())
+    {
+        const auto& record = _entityRecords[e.index];
+        if (record.archetype)
+        {
+            info.signature = &record.archetype->GetSignature();
+            info.indexInChunk = record.indexInChunk;
+
+            // Find chunk index within archetype
+            const auto& chunks = record.archetype->GetChunks();
+            for (uint32_t i = 0; i < chunks.size(); ++i)
+            {
+                if (chunks[i].get() == record.chunk)
+                {
+                    info.chunkIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    return info;
+}
+
+inline void World::Clear() noexcept
+{
+    // Clear all archetypes and their chunks
+    _archetypes.clear();
+
+    // Clear entity records
+    _entityRecords.clear();
+
+    // Reset entity tracking
+    _versions.clear();
+    _freeList.clear();
+    _alive.clear();
+    _aliveCount = 0u;
+
+    // Note: WorldOptions are preserved
+}
+
 // Component operations
 template<Component T>
 inline std::expected<void, Error> World::Add(Entity e, const T& value)
@@ -221,10 +287,12 @@ inline std::expected<void, Error> World::Add(Entity e, const T& value)
 
     // Set component value
     auto componentResult = Get<T>(e);
-    if (componentResult.has_value())
+    if (!componentResult.has_value())
     {
-        *componentResult.value() = value;
+        // This should never happen after MoveEntity, but defensive programming
+        return std::unexpected(Error::ComponentNotFound);
     }
+    *componentResult.value() = value;
 
     return {};
 }
@@ -239,6 +307,10 @@ inline std::expected<void, Error> World::Remove(Entity e)
 
     // Check if entity has this component
     if (!Has<T>(e))
+        return std::unexpected(Error::ComponentNotFound);
+
+    // Defensive check: entity should have archetype if Has<T>() returned true
+    if (!_entityRecords[e.index].archetype)
         return std::unexpected(Error::ComponentNotFound);
 
     // Get current signature and create new signature without component
