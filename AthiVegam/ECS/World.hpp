@@ -316,6 +316,12 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
         return;
     }
 
+    // Update entity record BEFORE removing from old chunk
+    // (RemoveEntity may swap entities and we need the record to be correct)
+    record.archetype = newArchetype;
+    record.chunk = newChunk;
+    record.indexInChunk = static_cast<uint32_t>(newIndex);
+
     // Copy component data from old chunk to new chunk (if entity had components)
     if (oldChunk && oldArchetype)
     {
@@ -350,13 +356,14 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
         }
 
         // Remove from old chunk (this will swap with last entity)
-        oldChunk->RemoveEntity(oldIndex);
-    }
+        uint32_t swappedEntityIndex = oldChunk->RemoveEntity(oldIndex);
 
-    // Update entity record
-    record.archetype = newArchetype;
-    record.chunk = newChunk;
-    record.indexInChunk = static_cast<uint32_t>(newIndex);
+        // Update the swapped entity's record if one was swapped
+        if (swappedEntityIndex != 0 && swappedEntityIndex < _entityRecords.size())
+        {
+            _entityRecords[swappedEntityIndex].indexInChunk = oldIndex;
+        }
+    }
 }
 
 } // namespace Engine::ECS
