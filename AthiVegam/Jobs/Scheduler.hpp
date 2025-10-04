@@ -201,7 +201,8 @@ void Scheduler::ParallelFor(usize begin, usize end, usize grain, Fn fn)
             .priority = JobPriority::Normal
         };
 
-        Submit(desc, [chunkBegin, chunkEnd, &fn, &completedChunks]() {
+        // Capture fn by value to avoid dangling reference if caller scope exits
+        Submit(desc, [chunkBegin, chunkEnd, fn, &completedChunks]() {
             for (usize i = chunkBegin; i < chunkEnd; ++i)
             {
                 fn(i);
