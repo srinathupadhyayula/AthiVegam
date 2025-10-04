@@ -154,21 +154,33 @@ Build a modular, data‑oriented game engine in **C++23/26** with **C#/.NET 8** 
 - [ ] Unit tests: parallel_for scaling, hazard enforcement.
     
 
-### Phase 3 – ECS Core
+### Phase 3 – ECS Core ✅ COMPLETE
 
-- [ ] Define `Entity` (index+version).
-    
-- [ ] Implement free‑list reuse.
-    
-- [ ] Implement archetypes + chunk storage (32–64KB).
-    
-- [ ] Implement queries with include/exclude sets.
-    
-- [ ] Add prefab system (component sets + overrides).
-    
-- [ ] Add scene graph (TransformGraph).
-    
-- [ ] Unit tests: entity lifecycle, migration, queries.
+- [x] Define `Entity` (index+version).
+
+- [x] Implement free‑list reuse.
+
+- [x] Implement archetypes + chunk storage (64KB).
+
+- [x] Implement queries with include/exclude sets.
+
+- [x] Implement parallel iteration with Jobs system integration.
+
+- [x] Add World::Clear() and World::GetEntityInfo() APIs.
+
+- [x] Comprehensive error handling with std::expected.
+
+- [x] Unit tests: lifecycle, migration, query correctness (55 tests).
+
+- [x] Integration tests: large-scale validation, stress tests (11 tests).
+
+- [x] Performance benchmarks: throughput and scaling analysis (17 tests).
+
+- [x] Documentation: usage guide and performance characteristics.
+
+- [ ] Add prefab system (component sets + overrides) - DEFERRED to Phase 4+.
+
+- [ ] Add scene graph (TransformGraph) - DEFERRED to Phase 4+.
     
 
 ### Phase 4 – Rendering

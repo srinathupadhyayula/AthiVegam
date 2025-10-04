@@ -275,52 +275,9 @@ TEST_F(ECS_Integration, Stress_ArchetypeMigration_1000_Entities)
 
 // ===== Multi-threaded Scenarios =====
 
-TEST_F(ECS_Integration, MultiThreaded_ConcurrentEntityCreation)
-{
-    World world;
-    const size_t threadsCount = 4;
-    const size_t entitiesPerThread = 1000;
-
-    std::vector<std::thread> threads;
-    std::atomic<size_t> successCount{0};
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    // Note: World is NOT thread-safe for mutations, but this tests that
-    // the system doesn't crash under concurrent access (even if some operations fail)
-    for (size_t t = 0; t < threadsCount; ++t)
-    {
-        threads.emplace_back([&world, &successCount, entitiesPerThread]() {
-            for (size_t i = 0; i < entitiesPerThread; ++i)
-            {
-                Entity e = world.CreateEntity();
-                if (world.IsAlive(e))
-                {
-                    Position pos{ 0.0f, 0.0f, 0.0f };
-                    if (world.Add(e, pos).has_value())
-                    {
-                        successCount.fetch_add(1, std::memory_order_relaxed);
-                    }
-                }
-            }
-        });
-    }
-
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
-
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-    // Note: Due to lack of thread safety, not all operations may succeed
-    // But the system should not crash
-    EXPECT_GT(successCount.load(), 0u) << "At least some concurrent operations should succeed";
-    
-    // Performance check
-    EXPECT_LT(duration.count(), 2000) << "Concurrent creation took " << duration.count() << "ms";
-}
+// Note: World is NOT thread-safe for concurrent mutations (CreateEntity, Add, Remove, etc.)
+// These operations must be performed from a single thread or externally synchronized.
+// However, parallel queries (read-only operations) ARE safe and tested below.
 
 TEST_F(ECS_Integration, MultiThreaded_ParallelQueries_Concurrent)
 {
