@@ -29,6 +29,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Compiler-specific settings
 if(MSVC)
+    # Unicode support for Windows APIs
+    add_compile_definitions(
+        UNICODE             # Use Unicode (wide char) Windows APIs
+        _UNICODE            # Use Unicode C runtime functions
+    )
+
     # MSVC flags
     add_compile_options(
         /W4                 # Warning level 4
@@ -38,7 +44,7 @@ if(MSVC)
         /Zc:preprocessor    # Conforming preprocessor
         /MP                 # Multi-processor compilation
     )
-    
+
     # Disable specific warnings
     add_compile_options(
         /wd4100  # Unreferenced formal parameter (common in interfaces)
