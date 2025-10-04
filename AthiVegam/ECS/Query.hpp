@@ -5,6 +5,7 @@
 #include <tuple>
 #include <algorithm>
 #include <ranges>
+#include <utility>
 
 namespace Engine::ECS {
 
@@ -180,17 +181,24 @@ public:
     {
         for (auto it = begin(); it != end(); ++it)
         {
-            auto [columns...] = *it;
+            auto columnTuple = *it;
             const size_t count = it.Count();
-            
-            for (size_t i = 0; i < count; ++i)
-            {
-                func(columns[i]...);
-            }
+
+            // Apply function to each entity in the chunk
+            ForEachInChunk(std::forward<Func>(func), columnTuple, count, std::index_sequence_for<Ts...>{});
         }
     }
-    
-private:
+
+    // Helper to iterate over entities in a chunk
+    template<typename Func, size_t... Is>
+    void ForEachInChunk(Func&& func, const ComponentTuple& columns, size_t count, std::index_sequence<Is...>) const
+    {
+        for (size_t i = 0; i < count; ++i)
+        {
+            func(std::get<Is>(columns)[i]...);
+        }
+    }
+
     std::vector<Archetype*> _matchingArchetypes;
 };
 
