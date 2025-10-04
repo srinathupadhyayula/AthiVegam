@@ -22,10 +22,10 @@ public:
     {
         // Get all non-empty chunks
         auto chunkIndices = _query.GetChunkIndices();
-        
+
         if (chunkIndices.empty())
             return;
-        
+
         // Check if Jobs system is initialized
         if (!Jobs::Scheduler::Instance().IsInitialized())
         {
@@ -33,11 +33,14 @@ public:
             _query.ForEach(std::forward<Func>(func));
             return;
         }
-        
+
+        // Cache archetype pointers to avoid accessing query during parallel execution
+        const auto& archetypes = _query.GetMatchingArchetypes();
+
         // Parallel execution using Jobs system
         const size_t totalChunks = chunkIndices.size();
         std::atomic<size_t> completedChunks{0};
-        
+
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
@@ -45,14 +48,17 @@ public:
                 .name = "ECS_ParallelQuery",
                 .priority = Jobs::JobPriority::Normal
             };
-            
+
+            // Capture archetype pointer directly to avoid index lookup in job
+            Archetype* archetype = archetypes[archetypeIdx];
+
             // Capture chunk processing in a job
-            Jobs::Scheduler::Instance().Submit(desc, [this, archetypeIdx, chunkIdx, func, &completedChunks]() {
-                ProcessChunk(archetypeIdx, chunkIdx, func);
+            Jobs::Scheduler::Instance().Submit(desc, [archetype, chunkIdx, func, &completedChunks]() {
+                ProcessChunkDirect(archetype, chunkIdx, func);
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
-        
+
         // Wait for all chunks to complete
         while (completedChunks.load(std::memory_order_acquire) < totalChunks)
         {
@@ -66,39 +72,46 @@ public:
     void ExecuteChunks(Func&& func) const
     {
         auto chunkIndices = _query.GetChunkIndices();
-        
+
         if (chunkIndices.empty())
             return;
-        
+
+        // Cache archetype pointers
+        const auto& archetypes = _query.GetMatchingArchetypes();
+
         if (!Jobs::Scheduler::Instance().IsInitialized())
         {
             // Fallback: execute sequentially
             for (size_t i = 0; i < chunkIndices.size(); ++i)
             {
                 const auto& [archetypeIdx, chunkIdx] = chunkIndices[i];
-                ProcessChunkDirect(i, archetypeIdx, chunkIdx, func);
+                Archetype* archetype = archetypes[archetypeIdx];
+                ProcessChunkWithIndex(i, archetype, chunkIdx, func);
             }
             return;
         }
-        
+
         const size_t totalChunks = chunkIndices.size();
         std::atomic<size_t> completedChunks{0};
-        
+
         for (size_t i = 0; i < chunkIndices.size(); ++i)
         {
             const auto& [archetypeIdx, chunkIdx] = chunkIndices[i];
-            
+
             Jobs::JobDesc desc{
                 .name = "ECS_ParallelQueryChunk",
                 .priority = Jobs::JobPriority::Normal
             };
-            
-            Jobs::Scheduler::Instance().Submit(desc, [this, i, archetypeIdx, chunkIdx, func, &completedChunks]() {
-                ProcessChunkDirect(i, archetypeIdx, chunkIdx, func);
+
+            // Capture archetype pointer directly
+            Archetype* archetype = archetypes[archetypeIdx];
+
+            Jobs::Scheduler::Instance().Submit(desc, [i, archetype, chunkIdx, func, &completedChunks]() {
+                ProcessChunkWithIndex(i, archetype, chunkIdx, func);
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
-        
+
         while (completedChunks.load(std::memory_order_acquire) < totalChunks)
         {
             Engine::Threading::YieldThread();
@@ -106,29 +119,27 @@ public:
     }
     
 private:
+    // Process chunk using archetype pointer directly (for Execute)
     template<typename Func>
-    void ProcessChunk(size_t archetypeIdx, size_t chunkIdx, Func func) const
+    static void ProcessChunkDirect(Archetype* archetype, size_t chunkIdx, Func func)
     {
-        // Get archetype and chunk
-        const auto& archetypes = GetMatchingArchetypes();
-        if (archetypeIdx >= archetypes.size())
+        if (!archetype)
             return;
-            
-        Archetype* archetype = archetypes[archetypeIdx];
+
         const auto& chunks = archetype->GetChunks();
-        
+
         if (chunkIdx >= chunks.size())
             return;
-            
+
         Chunk* chunk = chunks[chunkIdx].get();
         const size_t count = chunk->Count();
-        
+
         if (count == 0)
             return;
-        
+
         // Get component columns
         auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
-        
+
         // Process each entity in the chunk
         for (size_t i = 0; i < count; ++i)
         {
@@ -137,29 +148,41 @@ private:
             }, columnTuple);
         }
     }
-    
+
+    // Process chunk using archetype index (for ExecuteChunks)
     template<typename Func>
-    void ProcessChunkDirect(size_t chunkIndex, size_t archetypeIdx, size_t chunkIdx, Func func) const
+    void ProcessChunk(size_t archetypeIdx, size_t chunkIdx, Func func) const
     {
+        // Get archetype and chunk
         const auto& archetypes = GetMatchingArchetypes();
         if (archetypeIdx >= archetypes.size())
             return;
-            
+
         Archetype* archetype = archetypes[archetypeIdx];
+        ProcessChunkDirect(archetype, chunkIdx, func);
+    }
+    
+    // Process chunk with index for ExecuteChunks
+    template<typename Func>
+    static void ProcessChunkWithIndex(size_t chunkIndex, Archetype* archetype, size_t chunkIdx, Func func)
+    {
+        if (!archetype)
+            return;
+
         const auto& chunks = archetype->GetChunks();
-        
+
         if (chunkIdx >= chunks.size())
             return;
-            
+
         Chunk* chunk = chunks[chunkIdx].get();
         const size_t count = chunk->Count();
-        
+
         if (count == 0)
             return;
-        
+
         // Get component columns
         auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
-        
+
         // Call user function with chunk data
         std::apply([&func, chunkIndex, count](auto*... columns) {
             func(chunkIndex, columns..., count);
