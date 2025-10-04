@@ -205,10 +205,10 @@ inline std::expected<void, Error> World::Add(Entity e, const T& value)
     MoveEntity(e, newArchetype);
 
     // Set component value
-    auto* component = Get<T>(e);
-    if (component.has_value())
+    auto componentResult = Get<T>(e);
+    if (componentResult.has_value())
     {
-        **component = value;
+        *componentResult.value() = value;
     }
 
     return {};
