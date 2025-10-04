@@ -284,7 +284,7 @@ TEST_F(ECS_Integration, MultiThreaded_ParallelQueries_Concurrent)
     World world;
     const size_t entityCount = 5000;
 
-    // Create entities
+    // Create entities with Position+Velocity
     for (size_t i = 0; i < entityCount; ++i)
     {
         Entity e = world.CreateEntity();
@@ -294,25 +294,37 @@ TEST_F(ECS_Integration, MultiThreaded_ParallelQueries_Concurrent)
         world.Add(e, vel);
     }
 
-    auto query = world.QueryComponents<Position, Velocity>();
-    auto parallel = MakeParallel(query);
+    // Create separate entities with Health to avoid data races
+    for (size_t i = 0; i < entityCount; ++i)
+    {
+        Entity e = world.CreateEntity();
+        Health health{ 100, 100 };
+        world.Add(e, health);
+    }
+
+    auto posVelQuery = world.QueryComponents<Position, Velocity>();
+    auto posVelParallel = MakeParallel(posVelQuery);
+
+    auto healthQuery = world.QueryComponents<Health>();
+    auto healthParallel = MakeParallel(healthQuery);
 
     std::atomic<int> iteration1Count{0};
     std::atomic<int> iteration2Count{0};
+    std::atomic<int> healthSum{0};
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    // Run two parallel queries concurrently
+    // Run two parallel queries concurrently on DIFFERENT component sets (no data races)
     std::thread t1([&]() {
-        parallel.Execute([&iteration1Count](Position& pos, Velocity& vel) {
+        posVelParallel.Execute([&iteration1Count](Position& pos, Velocity& vel) {
             pos.x += vel.dx;
             iteration1Count.fetch_add(1, std::memory_order_relaxed);
         });
     });
 
     std::thread t2([&]() {
-        parallel.Execute([&iteration2Count](Position& pos, Velocity& vel) {
-            pos.y += vel.dy;
+        healthParallel.Execute([&iteration2Count, &healthSum](Health& health) {
+            healthSum.fetch_add(health.current, std::memory_order_relaxed);
             iteration2Count.fetch_add(1, std::memory_order_relaxed);
         });
     });
@@ -323,9 +335,10 @@ TEST_F(ECS_Integration, MultiThreaded_ParallelQueries_Concurrent)
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-    // Both queries should process all entities
+    // Both queries should process all their respective entities
     EXPECT_EQ(iteration1Count.load(), entityCount);
     EXPECT_EQ(iteration2Count.load(), entityCount);
+    EXPECT_EQ(healthSum.load(), entityCount * 100); // All health entities start at 100
 
     // Performance check
     EXPECT_LT(duration.count(), 500) << "Concurrent parallel queries took " << duration.count() << "ms";

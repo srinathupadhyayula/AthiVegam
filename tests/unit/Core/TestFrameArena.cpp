@@ -393,41 +393,17 @@ TEST(FrameArena, Stress_ResetCycle)
 }
 
 // ============================================================================
-// Thread Safety Tests (FrameArena is NOT thread-safe by design)
+// Thread Safety Documentation (FrameArena is NOT thread-safe by design)
 // ============================================================================
 
-TEST(FrameArena, Concurrent_Allocations_DataRace)
-{
-    // This test documents that FrameArena is NOT thread-safe
-    // In production, each thread should have its own FrameArena
-    
-    FrameArena arena(64 * 1024);
-    
-    std::atomic<int> successCount{0};
-    constexpr int numThreads = 4;
-    constexpr int allocsPerThread = 100;
-    
-    std::vector<std::thread> threads;
-    for (int t = 0; t < numThreads; ++t)
-    {
-        threads.emplace_back([&]() {
-            for (int i = 0; i < allocsPerThread; ++i)
-            {
-                void* ptr = arena.Allocate(64);
-                if (ptr != nullptr)
-                {
-                    successCount.fetch_add(1, std::memory_order_relaxed);
-                }
-            }
-        });
-    }
-    
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
-    
-    // Due to data races, success count may be less than expected
-    // This test just ensures no crashes occur
-    EXPECT_GT(successCount.load(), 0);
-}
+// NOTE: FrameArena is intentionally NOT thread-safe for performance reasons.
+// Each thread should have its own FrameArena instance for frame-based allocations.
+//
+// The previous test "Concurrent_Allocations_DataRace" was removed because it
+// intentionally invoked undefined behavior (data races), which makes the test
+// suite unreliable and can cause spurious failures or crashes.
+//
+// Thread-safety requirements are documented in the FrameArena class header:
+// - Single-threaded use only
+// - Each thread should maintain its own FrameArena instance
+// - No synchronization primitives are used for maximum performance

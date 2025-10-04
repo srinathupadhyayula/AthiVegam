@@ -432,8 +432,9 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
                         uint8_t* oldData = oldChunk->_data.get() + oldColumnIt->offset + (oldIndex * meta->size);
                         uint8_t* newData = newChunk->_data.get() + newColumnIt->offset + (newIndex * meta->size);
 
-                        // Copy component data
-                        std::memcpy(newData, oldData, meta->size);
+                        // Use registered copy constructor for safe component copying
+                        // This is critical for non-POD types (e.g., types with std::string, std::vector, etc.)
+                        meta->copyConstruct(newData, oldData);
                     }
                 }
             }
