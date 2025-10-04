@@ -326,7 +326,7 @@ TEST_F(ECS_ParallelIteration, PerformanceComparison_Sequential_vs_Parallel)
     auto seqDuration = std::chrono::duration_cast<std::chrono::microseconds>(seqEnd - seqStart);
     
     // Reset positions
-    query.ForEach([](Position& pos) {
+    query.ForEach([](Position& pos, const Velocity&) {
         pos.x -= 1.0f;
         pos.y -= 1.0f;
         pos.z -= 1.0f;
