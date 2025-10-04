@@ -6,6 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace Engine::ECS;
 using namespace Engine::Jobs;
@@ -61,7 +62,7 @@ TEST_F(ECS_ParallelIteration, BasicParallel_SingleComponent)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto result = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
     }
     
     auto query = world.QueryComponents<Position>();
@@ -87,8 +88,8 @@ TEST_F(ECS_ParallelIteration, BasicParallel_MultipleComponents)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
-        world.Add(e, Velocity{ 1.0f, 0.0f, 0.0f });
+        [[maybe_unused]] auto r1 = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto r2 = world.Add(e, Velocity{ 1.0f, 0.0f, 0.0f });
     }
     
     auto query = world.QueryComponents<Position, Velocity>();
@@ -121,7 +122,7 @@ TEST_F(ECS_ParallelIteration, ReadOnly_NoDataRaces)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), static_cast<float>(i * 2), static_cast<float>(i * 3) });
+        [[maybe_unused]] auto result = world.Add(e, Position{ static_cast<float>(i), static_cast<float>(i * 2), static_cast<float>(i * 3) });
     }
     
     auto query = world.QueryComponents<Position>();
@@ -169,8 +170,8 @@ TEST_F(ECS_ParallelIteration, Write_IndependentComponents)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ 0.0f, 0.0f, 0.0f });
-        world.Add(e, Velocity{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto r1 = world.Add(e, Position{ 0.0f, 0.0f, 0.0f });
+        [[maybe_unused]] auto r2 = world.Add(e, Velocity{ static_cast<float>(i), 0.0f, 0.0f });
     }
     
     auto query = world.QueryComponents<Position, Velocity>();
@@ -198,7 +199,7 @@ TEST_F(ECS_ParallelIteration, ChunkLevel_Processing)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto result = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
     }
     
     auto query = world.QueryComponents<Position>();
@@ -250,7 +251,7 @@ TEST_F(ECS_ParallelIteration, SingleEntity)
     World world;
     
     auto e = world.CreateEntity();
-    world.Add(e, Position{ 1.0f, 2.0f, 3.0f });
+    [[maybe_unused]] auto result = world.Add(e, Position{ 1.0f, 2.0f, 3.0f });
     
     auto query = world.QueryComponents<Position>();
     auto parallel = MakeParallel(query);
@@ -276,14 +277,14 @@ TEST_F(ECS_ParallelIteration, MixedArchetypes)
     for (int i = 0; i < 50; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto result = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
     }
-    
+
     for (int i = 0; i < 50; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i + 50), 0.0f, 0.0f });
-        world.Add(e, Velocity{ 1.0f, 0.0f, 0.0f });
+        [[maybe_unused]] auto r1 = world.Add(e, Position{ static_cast<float>(i + 50), 0.0f, 0.0f });
+        [[maybe_unused]] auto r2 = world.Add(e, Velocity{ 1.0f, 0.0f, 0.0f });
     }
     
     // Query for Position only (should find both archetypes)
@@ -308,8 +309,8 @@ TEST_F(ECS_ParallelIteration, PerformanceComparison_Sequential_vs_Parallel)
     for (size_t i = 0; i < entityCount; ++i)
     {
         auto e = world.CreateEntity();
-        world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
-        world.Add(e, Velocity{ 1.0f, 1.0f, 1.0f });
+        [[maybe_unused]] auto r1 = world.Add(e, Position{ static_cast<float>(i), 0.0f, 0.0f });
+        [[maybe_unused]] auto r2 = world.Add(e, Velocity{ 1.0f, 1.0f, 1.0f });
     }
     
     auto query = world.QueryComponents<Position, Velocity>();
