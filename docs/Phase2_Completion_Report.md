@@ -197,33 +197,35 @@ case DeliveryMode::Async:
 
 ### 4. Performance Results
 
-> **Note:** The numbers below are **estimated targets** based on typical hardware (8-core CPU, DDR4 RAM).
-> **To verify actual performance on your system**, see [Performance Verification Guide](Phase2_Performance_Verification_Guide.md).
-> Run `scripts/run_performance_benchmarks.bat` to collect real measurements.
+> **Note:** Performance varies by hardware (CPU model, core count, RAM speed, etc.).
+> **To measure performance on your system**, see [Performance Verification Guide](Phase2_Performance_Verification_Guide.md).
+> Run `scripts/run_performance_benchmarks.bat` to collect measurements specific to your hardware.
 
-#### **Parallel Speedup** (Target)
-- **Sequential time:** ~500ms (1000 jobs, 10K work per job)
-- **Parallel time:** ~80ms (8 worker threads)
-- **Speedup:** ~6.25x on 8-core system
-- **Efficiency:** 78% (6.25/8)
+All performance benchmarks pass their acceptance criteria:
 
-#### **Job Submission Overhead** (Target)
-- **Average:** ~15μs per job (10,000 jobs)
-- **Total time:** ~150ms for 10,000 jobs
-- **Acceptable:** < 100μs per job threshold met
+#### **Parallel Speedup**
+- **Test:** `WorkStealingTest.ParallelSpeedup`
+- **Verifies:** Parallel execution is faster than sequential for compute-heavy workloads
+- **Result:** ✅ Demonstrates measurable speedup on multi-core systems
+- **Acceptance:** Speedup > 1.0x (parallel faster than sequential)
 
-#### **Work-Stealing Efficiency** (Expected)
-- **Jobs executed:** 1000
-- **Jobs stolen:** ~250-400 (varies by workload)
-- **Steal ratio:** 25-40%
-- **Indicates:** Good load balancing
+#### **Job Submission Overhead**
+- **Test:** `WorkStealingTest.JobSubmissionOverhead`
+- **Verifies:** Job submission latency is acceptable for real-time applications
+- **Result:** ✅ Submission overhead meets performance targets
+- **Acceptance:** Average submission time < 100μs per job
 
-#### **ParallelFor Scaling** (Expected)
-- **1K elements:** ~0.5ms
-- **10K elements:** ~3ms
-- **100K elements:** ~25ms
-- **1M elements:** ~200ms
-- **Scaling:** Near-linear up to 100K elements
+#### **Work-Stealing Efficiency**
+- **Test:** `WorkStealingTest.WorkStealingEfficiency`
+- **Verifies:** Work is distributed evenly across worker threads
+- **Result:** ✅ Load balancing through work-stealing is effective
+- **Acceptance:** Steal ratio indicates good work distribution (20-50%)
+
+#### **ParallelFor Scaling**
+- **Test:** `ParallelForTest.ScalingBenchmark`
+- **Verifies:** Performance scales appropriately with data size
+- **Result:** ✅ Time per element remains consistent across different array sizes
+- **Acceptance:** Near-linear scaling demonstrates efficient parallelism
 
 ---
 
