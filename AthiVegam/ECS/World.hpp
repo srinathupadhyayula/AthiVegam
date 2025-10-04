@@ -2,6 +2,7 @@
 #include "ComponentTraits.hpp"
 #include "ComponentRegistry.hpp"
 #include "Archetype.hpp"
+#include "Query.hpp"
 #include <cstdint>
 #include <vector>
 #include <expected>
@@ -66,6 +67,13 @@ public:
 
     template<Component T>
     [[nodiscard]] bool Has(Entity e) const noexcept;
+
+    // Query system - iterate over entities with specific components
+    template<Component... Ts>
+    [[nodiscard]] Query<Ts...> QueryComponents() const noexcept;
+
+    template<Component... IncludeTs, Component... ExcludeTs>
+    [[nodiscard]] Query<IncludeTs...> QueryComponents(Exclude<ExcludeTs...>) const noexcept;
 
 private:
     // Entity location tracking
@@ -364,6 +372,41 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
             _entityRecords[swappedEntityIndex].indexInChunk = oldIndex;
         }
     }
+}
+
+// Query system implementations
+template<Component... Ts>
+inline Query<Ts...> World::QueryComponents() const noexcept
+{
+    std::vector<Archetype*> matchingArchetypes;
+
+    // Find all archetypes that contain all required components
+    for (const auto& [signature, archetype] : _archetypes)
+    {
+        if (SignatureMatches<Ts...>(signature))
+        {
+            matchingArchetypes.push_back(archetype.get());
+        }
+    }
+
+    return Query<Ts...>(std::move(matchingArchetypes));
+}
+
+template<Component... IncludeTs, Component... ExcludeTs>
+inline Query<IncludeTs...> World::QueryComponents(Exclude<ExcludeTs...> exclude) const noexcept
+{
+    std::vector<Archetype*> matchingArchetypes;
+
+    // Find all archetypes that contain all required components and none of the excluded ones
+    for (const auto& [signature, archetype] : _archetypes)
+    {
+        if (SignatureMatches<IncludeTs...>(signature, exclude))
+        {
+            matchingArchetypes.push_back(archetype.get());
+        }
+    }
+
+    return Query<IncludeTs...>(std::move(matchingArchetypes));
 }
 
 } // namespace Engine::ECS

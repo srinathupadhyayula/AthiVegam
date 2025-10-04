@@ -29,3 +29,11 @@ target_link_libraries(TestECS_ComponentOperations
         AthiVegam::ECS
 )
 
+add_unit_test(TestECS_Query
+    TestECS_Query.cpp
+)
+
+target_link_libraries(TestECS_Query
+    PRIVATE
+        AthiVegam::ECS
+)
