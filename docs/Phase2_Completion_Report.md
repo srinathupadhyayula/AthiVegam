@@ -150,7 +150,7 @@ case DeliveryMode::Async:
 
 ### 3. Testing
 
-#### **Unit Tests** (50+ test cases)
+#### **Unit Tests** (63 tests; see coverage report)
 
 **TestScheduler.cpp** (14 tests):
 - Initialization and worker count verification
