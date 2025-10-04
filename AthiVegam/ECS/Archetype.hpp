@@ -11,6 +11,13 @@ namespace Engine::ECS {
 class Chunk;
 class Archetype;
 
+// Custom deleter for aligned memory
+struct AlignedDeleter {
+    void operator()(uint8_t* ptr) const noexcept {
+        ::operator delete[](ptr, std::align_val_t{ 64 });
+    }
+};
+
 // Chunk: SoA storage for entities with the same component signature
 // Size: 32-64 KB for cache efficiency; 64-byte aligned for SIMD
 class Chunk {
@@ -19,7 +26,7 @@ public:
     static constexpr size_t ALIGNMENT = 64;         // 64-byte alignment for SIMD
 
     explicit Chunk(const ComponentSignature& signature);
-    ~Chunk();
+    ~Chunk() = default;
 
     // Non-copyable, movable
     Chunk(const Chunk&) = delete;
@@ -72,7 +79,7 @@ public:
 private:
     void CalculateLayout(const ComponentSignature& signature);
 
-    std::unique_ptr<uint8_t[]> _data;                          // Aligned chunk memory
+    std::unique_ptr<uint8_t[], AlignedDeleter> _data;          // Aligned chunk memory
     std::unordered_map<ComponentTypeID, size_t> _columnOffsets; // Type ID → byte offset
     std::vector<size_t> _componentSizes;                       // Size of each component
     std::vector<uint32_t> _entityIndices;                      // Entity index per slot
@@ -122,14 +129,10 @@ inline Chunk::Chunk(const ComponentSignature& signature)
 {
     CalculateLayout(signature);
 
-    // Allocate aligned memory
-    _data = std::unique_ptr<uint8_t[]>(new (std::align_val_t{ ALIGNMENT }) uint8_t[CHUNK_SIZE]);
+    // Allocate aligned memory using operator new[] with alignment
+    uint8_t* rawPtr = static_cast<uint8_t*>(::operator new[](CHUNK_SIZE, std::align_val_t{ ALIGNMENT }));
+    _data = std::unique_ptr<uint8_t[], AlignedDeleter>(rawPtr);
     std::memset(_data.get(), 0, CHUNK_SIZE);
-}
-
-inline Chunk::~Chunk()
-{
-    // Aligned delete handled by unique_ptr with align_val_t
 }
 
 inline void Chunk::CalculateLayout(const ComponentSignature& signature)
