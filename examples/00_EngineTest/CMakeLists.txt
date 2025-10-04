@@ -7,7 +7,7 @@ add_executable(EngineTest
 target_link_libraries(EngineTest
     PRIVATE
         AthiVegam::Core
-        AthiVegam_Comm
+        AthiVegam::Comm
 )
 
 # Set output directory

@@ -6,8 +6,8 @@ add_executable(TestCommLayer
 
 target_link_libraries(TestCommLayer
     PRIVATE
-        AthiVegam_Comm
-        AthiVegam_Core
+        AthiVegam::Comm
+        AthiVegam::Core
         GTest::gtest
         GTest::gtest_main
 )

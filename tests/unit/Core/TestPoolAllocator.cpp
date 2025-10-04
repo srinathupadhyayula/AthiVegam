@@ -438,46 +438,50 @@ TEST(PoolAllocator, Stress_RandomAllocDealloc)
 // Thread Safety Tests (PoolAllocator is NOT thread-safe by design)
 // ============================================================================
 
-TEST(PoolAllocator, Concurrent_Allocations)
+TEST(PoolAllocator, ThreadSafety_Documentation)
 {
-    // This test documents that PoolAllocator is NOT thread-safe
-    // In production, use external synchronization or per-thread pools
-    
-    PoolAllocator pool(64, 8, 1000);
-    
-    std::atomic<int> successCount{0};
-    constexpr int numThreads = 4;
-    constexpr int allocsPerThread = 100;
-    
-    std::vector<std::thread> threads;
-    for (int t = 0; t < numThreads; ++t)
+    // This test documents that PoolAllocator is NOT thread-safe by design
+    // It should be used with external synchronization in multi-threaded environments
+    //
+    // IMPORTANT: Do not use PoolAllocator concurrently without synchronization!
+    // Use one of these approaches instead:
+    // 1. External mutex protection
+    // 2. Per-thread PoolAllocator instances
+    // 3. Lock-free allocator alternatives
+
+    PoolAllocator pool(64, 8, 100);
+
+    // Single-threaded usage is safe and efficient
+    std::vector<void*> ptrs;
+
+    // Allocate multiple blocks
+    for (int i = 0; i < 50; ++i)
     {
-        threads.emplace_back([&]() {
-            std::vector<void*> localPtrs;
-            for (int i = 0; i < allocsPerThread; ++i)
-            {
-                void* ptr = pool.Allocate(64, 8);
-                if (ptr != nullptr)
-                {
-                    localPtrs.push_back(ptr);
-                    successCount.fetch_add(1, std::memory_order_relaxed);
-                }
-            }
-            
-            // Deallocate
-            for (void* ptr : localPtrs)
-            {
-                pool.Deallocate(ptr);
-            }
-        });
+        void* ptr = pool.Allocate(64, 8);
+        ASSERT_NE(ptr, nullptr);
+        ptrs.push_back(ptr);
     }
-    
-    for (auto& thread : threads)
+
+    EXPECT_EQ(pool.AllocatedBlocks(), 50);
+    EXPECT_EQ(pool.FreeBlocks(), 50);
+
+    // Deallocate all blocks
+    for (void* ptr : ptrs)
     {
-        thread.join();
+        pool.Deallocate(ptr);
     }
-    
-    // Due to data races, results may be unpredictable
-    // This test just ensures no crashes
-    EXPECT_GT(successCount.load(), 0);
+
+    EXPECT_TRUE(pool.IsEmpty());
+    EXPECT_EQ(pool.FreeBlocks(), 100);
+
+    // Example of safe multi-threaded usage pattern:
+    //
+    // std::mutex poolMutex;
+    //
+    // void ThreadSafeAllocate() {
+    //     std::lock_guard<std::mutex> lock(poolMutex);
+    //     void* ptr = pool.Allocate(64, 8);
+    //     // ... use ptr ...
+    //     pool.Deallocate(ptr);
+    // }
 }

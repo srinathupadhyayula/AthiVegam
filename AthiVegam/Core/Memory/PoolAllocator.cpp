@@ -3,6 +3,7 @@
 
 #include <spdlog/spdlog.h>
 #include <cassert>
+#include <unordered_set>
 
 namespace Engine::Memory {
 
@@ -17,12 +18,14 @@ PoolAllocator::PoolAllocator(usize blockSize, usize blockAlignment, usize blockC
     if (blockSize == 0 || blockCount == 0)
     {
         spdlog::error("PoolAllocator blockSize and blockCount must be non-zero");
+        _blockCount = 0;  // Mark allocator as invalid
         return;
     }
 
     if (!IsPowerOf2(blockAlignment))
     {
         spdlog::error("PoolAllocator alignment must be a power of 2: {}", blockAlignment);
+        _blockCount = 0;  // Mark allocator as invalid
         return;
     }
 
@@ -111,9 +114,20 @@ void PoolAllocator::Deallocate(void* ptr)
         return;
     }
 
-    // Detect double free by scanning free list (O(n), acceptable for debug safety)
+    // Detect double free by scanning free list with cycle protection
+    // This prevents infinite loops if the free list becomes corrupted due to race conditions
+    std::unordered_set<void*> visited;
     for (void* node = _freeList; node != nullptr; node = *static_cast<void**>(node))
     {
+        // Check for cycles in the free list (indicates corruption)
+        if (visited.count(node))
+        {
+            spdlog::error("PoolAllocator::Deallocate detected cycle in free list - possible corruption from race condition");
+            return;
+        }
+        visited.insert(node);
+
+        // Check for double free
         if (node == ptr)
         {
             spdlog::error("PoolAllocator::Deallocate detected double free");
