@@ -49,17 +49,32 @@ public:
         // Submit a job for each chunk
         for (const auto& [archetypeIdx, chunkIdx] : chunkIndices)
         {
+            Archetype* archetype = archetypes[archetypeIdx];
+            if (!archetype) continue;
+
+            const auto& chunks = archetype->GetChunks();
+            if (chunkIdx >= chunks.size()) continue;
+
+            Chunk* chunk = chunks[chunkIdx].get();
+            const size_t count = chunk ? chunk->Count() : 0;
+            if (count == 0) continue;
+
+            // Prepare column pointers now to avoid accessing vectors inside jobs
+            auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
+
             Jobs::JobDesc desc{
                 .name = "ECS_ParallelQuery",
                 .priority = Jobs::JobPriority::Normal
             };
 
-            // Capture archetype pointer directly to avoid index lookup in job
-            Archetype* archetype = archetypes[archetypeIdx];
-
-            // Capture chunk processing in a job
-            Jobs::Scheduler::Instance().Submit(desc, [archetype, chunkIdx, sharedFunc, &completedChunks]() {
-                ProcessChunkDirect(archetype, chunkIdx, *sharedFunc);
+            // Capture only POD/pointers into the job
+            Jobs::Scheduler::Instance().Submit(desc, [columnTuple, count, sharedFunc, &completedChunks]() mutable {
+                for (size_t i = 0; i < count; ++i)
+                {
+                    std::apply([&](auto*... columns) {
+                        (*sharedFunc)(columns[i]...);
+                    }, columnTuple);
+                }
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
@@ -106,16 +121,27 @@ public:
         {
             const auto& [archetypeIdx, chunkIdx] = chunkIndices[i];
 
+            Archetype* archetype = archetypes[archetypeIdx];
+            if (!archetype) continue;
+
+            const auto& chunks = archetype->GetChunks();
+            if (chunkIdx >= chunks.size()) continue;
+
+            Chunk* chunk = chunks[chunkIdx].get();
+            const size_t count = chunk ? chunk->Count() : 0;
+            if (count == 0) continue;
+
+            auto columnTuple = std::make_tuple(chunk->GetColumn<Ts>()...);
+
             Jobs::JobDesc desc{
                 .name = "ECS_ParallelQueryChunk",
                 .priority = Jobs::JobPriority::Normal
             };
 
-            // Capture archetype pointer directly
-            Archetype* archetype = archetypes[archetypeIdx];
-
-            Jobs::Scheduler::Instance().Submit(desc, [i, archetype, chunkIdx, sharedFunc, &completedChunks]() {
-                ProcessChunkWithIndex(i, archetype, chunkIdx, *sharedFunc);
+            Jobs::Scheduler::Instance().Submit(desc, [i, columnTuple, count, sharedFunc, &completedChunks]() mutable {
+                std::apply([&](auto*... columns) {
+                    (*sharedFunc)(i, columns..., count);
+                }, columnTuple);
                 completedChunks.fetch_add(1, std::memory_order_release);
             });
         }
