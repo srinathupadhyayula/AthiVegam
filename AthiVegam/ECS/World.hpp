@@ -165,10 +165,17 @@ inline std::expected<void, Error> World::DestroyEntity(Entity e) noexcept
         auto& record = _entityRecords[e.index];
         if (record.chunk)
         {
+            // RemoveEntity returns the entity index that was swapped into this slot
+            // Returns 0 if no swap occurred (entity was last in chunk)
+            // CRITICAL: Entity index 0 is VALID, so we must check against a sentinel
+            const uint32_t lastEntityInChunk = record.chunk->GetEntityIndex(record.chunk->Count() - 1);
+            const bool willSwap = (record.indexInChunk != record.chunk->Count() - 1);
+
             uint32_t swappedEntityIndex = record.chunk->RemoveEntity(record.indexInChunk);
 
             // If an entity was swapped, update its record
-            if (swappedEntityIndex != 0 && swappedEntityIndex < _entityRecords.size())
+            // We check willSwap because swappedEntityIndex could be 0 (valid entity)
+            if (willSwap && swappedEntityIndex < _entityRecords.size())
             {
                 _entityRecords[swappedEntityIndex].indexInChunk = record.indexInChunk;
             }
@@ -441,10 +448,13 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
         }
 
         // Remove from old chunk (this will swap with last entity)
+        // CRITICAL: Check if swap will occur BEFORE calling RemoveEntity
+        const bool willSwap = (oldIndex != oldChunk->Count() - 1);
         uint32_t swappedEntityIndex = oldChunk->RemoveEntity(oldIndex);
 
         // Update the swapped entity's record if one was swapped
-        if (swappedEntityIndex != 0 && swappedEntityIndex < _entityRecords.size())
+        // We check willSwap because swappedEntityIndex could be 0 (valid entity)
+        if (willSwap && swappedEntityIndex < _entityRecords.size())
         {
             _entityRecords[swappedEntityIndex].indexInChunk = oldIndex;
         }
