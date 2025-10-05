@@ -19,33 +19,27 @@ add_library(AthiVegam_Comm STATIC
     ${COMM_SOURCES}
 )
 
+# Alias for consistent naming
+add_library(AthiVegam::Comm ALIAS AthiVegam_Comm)
+
 # Include directories
 target_include_directories(AthiVegam_Comm
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<INSTALL_INTERFACE:include>
 )
 
 # Link dependencies
 target_link_libraries(AthiVegam_Comm
     PUBLIC
-        AthiVegam_Core
-        AthiVegam_Jobs
+        AthiVegam::Core
+        AthiVegam::Jobs
     PRIVATE
         spdlog::spdlog
 )
 
-# Compiler settings
-if(MSVC)
-    target_compile_options(AthiVegam_Comm PRIVATE
-        /W4
-        /permissive-
-    )
-else()
-    target_compile_options(AthiVegam_Comm PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
-endif()
+# Compiler warnings
+set_project_warnings(AthiVegam_Comm)
 
 # Set target properties
 set_target_properties(AthiVegam_Comm PROPERTIES

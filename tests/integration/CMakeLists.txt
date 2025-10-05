@@ -1,13 +1,14 @@
-﻿# Unit Tests
+# Integration Tests
 
-# Helper function to create unit tests
-function(add_unit_test test_name)
+# Helper function to create integration tests
+function(add_integration_test test_name)
     add_executable(${test_name} ${ARGN})
     target_link_libraries(${test_name}
         PRIVATE
             GTest::gtest
             GTest::gtest_main
             AthiVegam::Core
+            AthiVegam::Jobs
     )
     
     # Add to CTest
@@ -17,19 +18,13 @@ function(add_unit_test test_name)
     set_tests_properties(${test_name} PROPERTIES
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+    
+    # Integration tests may take longer
+    set_tests_properties(${test_name} PROPERTIES
+        TIMEOUT 300
+    )
 endfunction()
 
-# Core module tests
-add_subdirectory(Core)
-
-# Placeholder test to ensure build system works
-add_unit_test(TestPlaceholder TestPlaceholder.cpp)
-
-# Jobs module tests
-add_subdirectory(Jobs)
-
-# Comm module tests
-add_subdirectory(Comm)
-
-# ECS module tests
+# ECS integration tests
 add_subdirectory(ECS)
+

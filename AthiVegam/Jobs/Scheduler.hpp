@@ -86,7 +86,8 @@ public:
     struct Stats
     {
         u64 jobsSubmitted = 0;
-        u64 jobsExecuted = 0;
+        u64 jobsExecuted = 0;   // Successfully completed jobs
+        u64 jobsFailed = 0;      // Jobs that threw exceptions
         u64 jobsStolen = 0;
         u64 jobsCancelled = 0;
     };
@@ -152,6 +153,7 @@ private:
     std::mutex _jobsMutex;
     u32 _nextJobIndex = 0;
     u32 _jobVersion = 1;
+    std::atomic<u32> _nextWorker{0};  // Round-robin worker selection
 
     // Hazard tracking
     HazardTracker _hazardTracker;

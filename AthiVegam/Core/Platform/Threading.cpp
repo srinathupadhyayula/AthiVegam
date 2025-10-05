@@ -239,4 +239,95 @@ void ConditionVariable::NotifyAll()
     WakeAllConditionVariable(static_cast<CONDITION_VARIABLE*>(_handle));
 }
 
+// RWLock implementation (uses SRWLOCK)
+
+RWLock::RWLock()
+{
+    _handle = new SRWLOCK();
+    InitializeSRWLock(static_cast<SRWLOCK*>(_handle));
+}
+
+RWLock::~RWLock()
+{
+    if (_handle != nullptr)
+    {
+        // SRWLOCK does not require explicit destruction
+        delete static_cast<SRWLOCK*>(_handle);
+        _handle = nullptr;
+    }
+}
+
+void RWLock::LockShared()
+{
+    AcquireSRWLockShared(static_cast<SRWLOCK*>(_handle));
+}
+
+bool RWLock::TryLockShared()
+{
+    return TryAcquireSRWLockShared(static_cast<SRWLOCK*>(_handle)) != 0;
+}
+
+void RWLock::UnlockShared()
+{
+    ReleaseSRWLockShared(static_cast<SRWLOCK*>(_handle));
+}
+
+void RWLock::LockExclusive()
+{
+    AcquireSRWLockExclusive(static_cast<SRWLOCK*>(_handle));
+}
+
+bool RWLock::TryLockExclusive()
+{
+    return TryAcquireSRWLockExclusive(static_cast<SRWLOCK*>(_handle)) != 0;
+}
+
+void RWLock::UnlockExclusive()
+{
+    ReleaseSRWLockExclusive(static_cast<SRWLOCK*>(_handle));
+}
+
+// Semaphore implementation
+
+Semaphore::Semaphore(u32 initialCount)
+{
+    // Max count: large positive value
+    constexpr LONG kMaxCount = 0x7fffffff;
+    _handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initialCount), kMaxCount, nullptr);
+
+    if (_handle == nullptr)
+    {
+        spdlog::error("CreateSemaphoreW failed: {}", GetLastError());
+        throw std::runtime_error("Failed to create Semaphore");
+    }
+}
+
+Semaphore::~Semaphore()
+{
+    if (_handle != nullptr)
+    {
+        CloseHandle(static_cast<HANDLE>(_handle));
+        _handle = nullptr;
+    }
+}
+
+void Semaphore::Wait()
+{
+    WaitForSingleObject(static_cast<HANDLE>(_handle), INFINITE);
+}
+
+bool Semaphore::TryWait()
+{
+    DWORD res = WaitForSingleObject(static_cast<HANDLE>(_handle), 0);
+    return res == WAIT_OBJECT_0;
+}
+
+void Semaphore::Signal()
+{
+    if (!ReleaseSemaphore(static_cast<HANDLE>(_handle), 1, nullptr))
+    {
+        spdlog::error("ReleaseSemaphore failed: {}", GetLastError());
+    }
+}
+
 } // namespace Engine::Threading

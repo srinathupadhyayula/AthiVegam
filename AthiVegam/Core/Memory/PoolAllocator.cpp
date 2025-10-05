@@ -3,6 +3,7 @@
 
 #include <spdlog/spdlog.h>
 #include <cassert>
+#include <unordered_set>
 
 namespace Engine::Memory {
 
@@ -17,12 +18,14 @@ PoolAllocator::PoolAllocator(usize blockSize, usize blockAlignment, usize blockC
     if (blockSize == 0 || blockCount == 0)
     {
         spdlog::error("PoolAllocator blockSize and blockCount must be non-zero");
+        _blockCount = 0;  // Mark allocator as invalid
         return;
     }
 
     if (!IsPowerOf2(blockAlignment))
     {
         spdlog::error("PoolAllocator alignment must be a power of 2: {}", blockAlignment);
+        _blockCount = 0;  // Mark allocator as invalid
         return;
     }
 
@@ -111,9 +114,20 @@ void PoolAllocator::Deallocate(void* ptr)
         return;
     }
 
-    // Detect double free by scanning free list (O(n), acceptable for debug safety)
+    // Detect double free by scanning free list with cycle protection
+    // This prevents infinite loops if the free list becomes corrupted due to race conditions
+    std::unordered_set<void*> visited;
     for (void* node = _freeList; node != nullptr; node = *static_cast<void**>(node))
     {
+        // Check for cycles in the free list (indicates corruption)
+        if (visited.count(node))
+        {
+            spdlog::error("PoolAllocator::Deallocate detected cycle in free list - possible corruption from race condition");
+            return;
+        }
+        visited.insert(node);
+
+        // Check for double free
         if (node == ptr)
         {
             spdlog::error("PoolAllocator::Deallocate detected double free");
@@ -125,6 +139,55 @@ void PoolAllocator::Deallocate(void* ptr)
     *static_cast<void**>(ptr) = _freeList;
     _freeList = ptr;
     _allocatedBlocks--;
+}
+
+// Move constructor
+PoolAllocator::PoolAllocator(PoolAllocator&& other) noexcept
+    : _buffer(other._buffer)
+    , _freeList(other._freeList)
+    , _blockSize(other._blockSize)
+    , _blockAlignment(other._blockAlignment)
+    , _blockCount(other._blockCount)
+    , _allocatedBlocks(other._allocatedBlocks)
+{
+    other._buffer = nullptr;
+    other._freeList = nullptr;
+    other._blockSize = 0;
+    other._blockAlignment = 1;
+    other._blockCount = 0;
+    other._allocatedBlocks = 0;
+}
+
+// Move assignment
+PoolAllocator& PoolAllocator::operator=(PoolAllocator&& other) noexcept
+{
+    if (this != &other)
+    {
+        // Release current buffer if owned
+        if (_buffer != nullptr)
+        {
+            if (_allocatedBlocks > 0)
+            {
+                spdlog::warn("PoolAllocator move-assign freeing buffer with {} allocated blocks", _allocatedBlocks);
+            }
+            AlignedFree(_buffer);
+        }
+
+        _buffer = other._buffer;
+        _freeList = other._freeList;
+        _blockSize = other._blockSize;
+        _blockAlignment = other._blockAlignment;
+        _blockCount = other._blockCount;
+        _allocatedBlocks = other._allocatedBlocks;
+
+        other._buffer = nullptr;
+        other._freeList = nullptr;
+        other._blockSize = 0;
+        other._blockAlignment = 1;
+        other._blockCount = 0;
+        other._allocatedBlocks = 0;
+    }
+    return *this;
 }
 
 void PoolAllocator::InitializeFreeList()
