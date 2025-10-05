@@ -9,8 +9,9 @@ namespace Engine::ECS {
 struct ComponentMetadata {
     size_t size{ 0 };
     size_t alignment{ 1 };
-    std::function<void(void*, const void*)> copyConstruct{ nullptr };
-    std::function<void(void*)> destruct{ nullptr };
+    std::function<void(void*)> defaultConstruct{ nullptr };        // Default constructor
+    std::function<void(void*, const void*)> copyConstruct{ nullptr }; // Copy constructor
+    std::function<void(void*)> destruct{ nullptr };                // Destructor
 };
 
 // Global component type registry
@@ -34,7 +35,12 @@ public:
         ComponentMetadata meta;
         meta.size = sizeof(T);
         meta.alignment = alignof(T);
-        
+
+        // Default constructor wrapper
+        meta.defaultConstruct = [](void* ptr) {
+            new (ptr) T();
+        };
+
         // Copy constructor wrapper
         meta.copyConstruct = [](void* dst, const void* src) {
             new (dst) T(*static_cast<const T*>(src));
