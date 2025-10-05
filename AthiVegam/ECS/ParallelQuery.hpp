@@ -75,7 +75,11 @@ public:
 
             // Validate all column pointers before submitting job
             // Skip this chunk if any column pointer is null
-            if (((std::get<Ts*>(columnTuple) == nullptr) || ...))
+            bool anyNull = false;
+            std::apply([&](auto*... cols) {
+                ((anyNull |= (cols == nullptr)), ...);
+            }, columnTuple);
+            if (anyNull)
                 continue;
 
             Jobs::JobDesc desc{

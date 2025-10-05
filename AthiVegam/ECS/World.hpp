@@ -409,11 +409,42 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
     record.chunk = newChunk;
     record.indexInChunk = static_cast<uint32_t>(newIndex);
 
+    // Initialize components that exist ONLY in the new archetype (not in old)
+    // This is critical to avoid uninitialized memory access
+    const auto& newSig = newArchetype->GetSignature();
+    const auto& newColumns = newChunk->GetColumns();
+
+    for (const auto typeID : newSig.GetTypeIDs())
+    {
+        bool existedInOld = false;
+        if (oldArchetype)
+        {
+            const auto& oldSig = oldArchetype->GetSignature();
+            existedInOld = (std::ranges::find(oldSig.GetTypeIDs(), typeID) != oldSig.GetTypeIDs().end());
+        }
+
+        if (!existedInOld)
+        {
+            // Component is new - default-construct it
+            const auto* meta = ComponentRegistry::Instance().GetMetadata(typeID);
+            if (meta && meta->defaultConstruct)
+            {
+                auto newColumnIt = std::ranges::find_if(newColumns,
+                    [typeID](const auto& col) { return col.typeID == typeID; });
+
+                if (newColumnIt != newColumns.end())
+                {
+                    uint8_t* newData = newChunk->_data.get() + newColumnIt->offset + (newIndex * meta->size);
+                    meta->defaultConstruct(newData);
+                }
+            }
+        }
+    }
+
     // Copy component data from old chunk to new chunk (if entity had components)
     if (oldChunk && oldArchetype)
     {
         const auto& oldSig = oldArchetype->GetSignature();
-        const auto& newSig = newArchetype->GetSignature();
 
         // Copy components that exist in both signatures
         for (const auto typeID : oldSig.GetTypeIDs())
@@ -426,7 +457,6 @@ inline void World::MoveEntity(Entity e, Archetype* newArchetype)
                 {
                     // Find column info in both chunks
                     const auto& oldColumns = oldChunk->GetColumns();
-                    const auto& newColumns = newChunk->GetColumns();
                     auto oldColumnIt = std::ranges::find_if(oldColumns,
                         [typeID](const auto& col) { return col.typeID == typeID; });
                     auto newColumnIt = std::ranges::find_if(newColumns,
